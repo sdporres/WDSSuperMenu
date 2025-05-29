@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -51,13 +52,13 @@ namespace WDSSuperMenu
 
                             if (Directory.Exists(savesPath))
                             {
-                                groupPanel.Controls.Add(BuildButton("> Saves", savesPath, (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag)));
+                                groupPanel.Controls.Add(BuildButton("> Saves", savesPath, null, (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag)));
                                 entriesAdded++;
                             }
 
                             if (Directory.Exists(manualsPath))
                             {
-                                groupPanel.Controls.Add(BuildButton("> Manuals", manualsPath, (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag)));
+                                groupPanel.Controls.Add(BuildButton("> Manuals", manualsPath, null, (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag)));
                                 entriesAdded++;
                             }
 
@@ -68,7 +69,10 @@ namespace WDSSuperMenu
                                 if (string.IsNullOrEmpty(appName))
                                     continue;
 
-                                groupPanel.Controls.Add(BuildButton(appName, exePath, (s, e) =>
+                                // Get icon from registry
+                                Icon icon = GetIconFromRegistry(Path.GetFileName(subdir), exePath);
+
+                                groupPanel.Controls.Add(BuildButton(appName, exePath, icon, (s, e) =>
                                 {
                                     var filePath = (string)((Button)s).Tag;
                                     LaunchApplication(filePath);
@@ -101,7 +105,46 @@ namespace WDSSuperMenu
             }
         }
 
-        private static Button BuildButton(string text, string tag, EventHandler onClick)
+        private Icon GetIconFromRegistry(string subdirName, string exePath)
+        {
+            try
+            {
+                using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
+                {
+                    if (productsKey == null)
+                        return Icon.ExtractAssociatedIcon(exePath); // Fallback to exe icon
+
+                    foreach (string productSubKeyName in productsKey.GetSubKeyNames())
+                    {
+                        using (RegistryKey productKey = productsKey.OpenSubKey(productSubKeyName))
+                        {
+                            if (productKey == null)
+                                continue;
+
+                            string productName = productKey.GetValue("ProductName")?.ToString();
+                            if (string.IsNullOrEmpty(productName) ||
+                                !productName.ToLowerInvariant().Contains(subdirName.ToLowerInvariant()))
+                                continue;
+
+                            string productIcon = productKey.GetValue("ProductIcon")?.ToString();
+                            if (string.IsNullOrEmpty(productIcon) || !File.Exists(productIcon) ||
+                                !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            // ProductIcon is a path to an .exe file
+                            return Icon.ExtractAssociatedIcon(productIcon);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Failed to retrieve icon for {subdirName} ({exePath}): {ex}");
+            }
+            return Icon.ExtractAssociatedIcon(exePath); // Fallback to the target .exe's icon
+        }
+
+        private static Button BuildButton(string text, string tag, Icon icon, EventHandler onClick)
         {
             var button = new Button
             {
@@ -110,8 +153,24 @@ namespace WDSSuperMenu
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Margin = new Padding(4),
-                MinimumSize = new Size(100, 30) // Ensure consistent button size
+                MinimumSize = new Size(100, 30),
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft
             };
+
+            if (icon != null)
+            {
+                try
+                {
+                    // Convert Icon to Bitmap for the button (16x16 for consistency)
+                    button.Image = icon.ToBitmap().GetThumbnailImage(16, 16, null, IntPtr.Zero);
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Failed to set icon for button {text}: {ex}");
+                }
+            }
+
             button.Click += onClick;
             ToolTip toolTip = new ToolTip();
             toolTip.SetToolTip(button, $"Open {text} at {tag}");
