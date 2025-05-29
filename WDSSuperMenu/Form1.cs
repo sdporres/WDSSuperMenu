@@ -7,10 +7,60 @@ namespace WDSSuperMenu
     public partial class Form1 : Form
     {
         private int pictureBoxSize = 32;
+        private readonly Dictionary<string, string> registryIconCache;
         public Form1()
         {
             InitializeComponent();
+            registryIconCache = BuildRegistryIconCache();
             ScanForWDSFolders();
+        }
+
+        private Dictionary<string, string> BuildRegistryIconCache()
+        {
+            var cache = new Dictionary<string, string>();
+            try
+            {
+                using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
+                {
+                    if (productsKey == null)
+                    {
+                        LogError("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
+                        return cache;
+                    }
+
+                    foreach (string productSubKeyName in productsKey.GetSubKeyNames())
+                    {
+                        try
+                        {
+                            using (RegistryKey productKey = productsKey.OpenSubKey(productSubKeyName))
+                            {
+                                if (productKey == null)
+                                    continue;
+
+                                string productName = productKey.GetValue("ProductName")?.ToString();
+                                string productIcon = productKey.GetValue("ProductIcon")?.ToString();
+
+                                if (string.IsNullOrEmpty(productName) || string.IsNullOrEmpty(productIcon) ||
+                                    !File.Exists(productIcon) ||
+                                    !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
+                                    continue;
+
+                                cache[productName.ToLowerInvariant()] = productIcon;
+                                LogError($"Cached icon for ProductName: {productName}, ProductIcon: {productIcon}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"Failed to process registry subkey {productSubKeyName}: {ex}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Failed to build registry icon cache: {ex}");
+            }
+            return cache;
         }
 
         private void ScanForWDSFolders()
@@ -40,8 +90,10 @@ namespace WDSSuperMenu
                             string manualsPath = Path.Combine(subdir, "manuals");
                             string[] exeFiles = Directory.GetFiles(subdir, "*.exe", SearchOption.TopDirectoryOnly);
 
+                            // Get icon for the group panel from cache
                             Icon groupIcon = GetIconFromRegistry(Path.GetFileName(subdir));
 
+                            // Create UI panel for this subdirectory
                             var groupPanel = new FlowLayoutPanel
                             {
                                 FlowDirection = FlowDirection.LeftToRight,
@@ -74,7 +126,9 @@ namespace WDSSuperMenu
                             {
                                 LogError($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
                             }
+
                             groupPanel.Controls.Add(pictureBox);
+
                             groupPanel.Controls.Add(new Label
                             {
                                 Text = Path.GetFileName(subdir),
@@ -87,13 +141,15 @@ namespace WDSSuperMenu
 
                             if (Directory.Exists(savesPath))
                             {
-                                groupPanel.Controls.Add(BuildButton("> Saves", savesPath, null, (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag)));
+                                groupPanel.Controls.Add(BuildButton("> Saves", savesPath, null, (s, e) =>
+                                    Process.Start("explorer.exe", (string)((Button)s).Tag)));
                                 entriesAdded++;
                             }
 
                             if (Directory.Exists(manualsPath))
                             {
-                                groupPanel.Controls.Add(BuildButton("> Manuals", manualsPath, null, (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag)));
+                                groupPanel.Controls.Add(BuildButton("> Manuals", manualsPath, null, (s, e) =>
+                                    Process.Start("explorer.exe", (string)((Button)s).Tag)));
                                 entriesAdded++;
                             }
 
@@ -104,6 +160,7 @@ namespace WDSSuperMenu
                                 if (string.IsNullOrEmpty(appName))
                                     continue;
 
+                                // Get icon from the .exe itself
                                 Icon exeIcon = null;
                                 try
                                 {
@@ -116,10 +173,7 @@ namespace WDSSuperMenu
                                 }
 
                                 groupPanel.Controls.Add(BuildButton(appName, exePath, exeIcon, (s, e) =>
-                                {
-                                    var filePath = (string)((Button)s).Tag;
-                                    LaunchApplication(filePath);
-                                }));
+                                    LaunchApplication((string)((Button)s).Tag)));
                                 entriesAdded++;
                             }
 
@@ -152,30 +206,13 @@ namespace WDSSuperMenu
         {
             try
             {
-                using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
+                string subdirLower = subdirName.ToLowerInvariant();
+                foreach (var entry in registryIconCache)
                 {
-                    if (productsKey == null)
-                        return null;
-
-                    foreach (string productSubKeyName in productsKey.GetSubKeyNames())
+                    if (entry.Key.Contains(subdirLower))
                     {
-                        using (RegistryKey productKey = productsKey.OpenSubKey(productSubKeyName))
-                        {
-                            if (productKey == null)
-                                continue;
-
-                            string productName = productKey.GetValue("ProductName")?.ToString();
-                            if (string.IsNullOrEmpty(productName) ||
-                                !productName.ToLowerInvariant().Contains(subdirName.ToLowerInvariant()))
-                                continue;
-
-                            string productIcon = productKey.GetValue("ProductIcon")?.ToString();
-                            if (string.IsNullOrEmpty(productIcon) || !File.Exists(productIcon) ||
-                                !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
-                                continue;
-
-                            return Icon.ExtractAssociatedIcon(productIcon);
-                        }
+                        string productIcon = entry.Value;
+                        return Icon.ExtractAssociatedIcon(productIcon);
                     }
                 }
             }
