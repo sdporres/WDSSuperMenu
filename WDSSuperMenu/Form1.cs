@@ -24,7 +24,7 @@ namespace WDSSuperMenu
                 {
                     if (productsKey == null)
                     {
-                        LogError("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
+                        LogToFile("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
                         return cache;
                     }
 
@@ -46,19 +46,19 @@ namespace WDSSuperMenu
                                     continue;
 
                                 cache[productName.ToLowerInvariant()] = productIcon;
-                                LogError($"Cached icon for ProductName: {productName}, ProductIcon: {productIcon}");
+                                LogToFile($"Cached icon for ProductName: {productName}, ProductIcon: {productIcon}");
                             }
                         }
                         catch (Exception ex)
                         {
-                            LogError($"Failed to process registry subkey {productSubKeyName}: {ex}");
+                            LogToFile($"Failed to process registry subkey {productSubKeyName}: {ex}");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                LogError($"Failed to build registry icon cache: {ex}");
+                LogToFile($"Failed to build registry icon cache: {ex}");
             }
             return cache;
         }
@@ -69,6 +69,22 @@ namespace WDSSuperMenu
             flowLayoutPanel.SuspendLayout();
             int maxGroupPanelWidth = 0;
             int totalHeight = 0;
+
+            // Define the desired button order
+            var desiredButtonOrder = new List<string> { "Scenario Game", "Campaign Game", "Scenario Editor", "Campaign Editor" };
+
+            // Calculate the maximum button width for EXE buttons, including icon
+            int maxButtonWidth = 0;
+            foreach (var buttonName in desiredButtonOrder)
+            {
+                var tempButton = BuildButton(buttonName, "", GetDefaultIcon(), null);
+                tempButton.AutoSize = true; // Ensure autosize for measurement
+                tempButton.PerformLayout();
+                int width = tempButton.PreferredSize.Width;
+                maxButtonWidth = Math.Max(maxButtonWidth, width);
+                LogToFile($"Calculated width for temp button '{buttonName}': {width}px");
+            }
+            LogToFile($"Maximum button width for EXE buttons: {maxButtonWidth}px");
 
             try
             {
@@ -103,11 +119,11 @@ namespace WDSSuperMenu
                             };
 
                             // Add icon or placeholder and label to groupPanel
-                            int iconSize = groupIcon != null && groupIcon.Width > 32 ? 64 : 32; // Fallback to 32x32 if icon is small or missing
+                            int iconSize = groupIcon != null && groupIcon.Width > 32 ? 64 : 32;
                             var pictureBox = new PictureBox
                             {
                                 Size = new Size(iconSize, iconSize),
-                                Margin = new Padding(0, 3, 8, 3) // Consistent margin for alignment
+                                Margin = new Padding(0, 3, 8, 3)
                             };
 
                             if (groupIcon != null)
@@ -115,16 +131,16 @@ namespace WDSSuperMenu
                                 try
                                 {
                                     pictureBox.Image = groupIcon.ToBitmap().GetThumbnailImage(iconSize, iconSize, null, IntPtr.Zero);
-                                    LogError($"Group icon for {Path.GetFileName(subdir)} set to {iconSize}x{iconSize}, native size: {groupIcon.Width}x{groupIcon.Height}");
+                                    LogToFile($"Group icon for {Path.GetFileName(subdir)} set to {iconSize}x{iconSize}, native size: {groupIcon.Width}x{groupIcon.Height}");
                                 }
                                 catch (Exception ex)
                                 {
-                                    LogError($"Failed to set group icon for {Path.GetFileName(subdir)}: {ex}");
+                                    LogToFile($"Failed to set group icon for {Path.GetFileName(subdir)}: {ex}");
                                 }
                             }
                             else
                             {
-                                LogError($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
+                                LogToFile($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
                             }
 
                             groupPanel.Controls.Add(pictureBox);
@@ -137,22 +153,23 @@ namespace WDSSuperMenu
                                 Margin = new Padding(3)
                             });
 
-                            int entriesAdded = 0;
+                            // Collect all buttons for this group
+                            var buttons = new List<(string Name, Control Control)>();
 
+                            // Add Saves and Manuals buttons (unchanged width)
                             if (Directory.Exists(savesPath))
                             {
-                                groupPanel.Controls.Add(BuildButton("> Saves", savesPath, null, (s, e) =>
-                                    Process.Start("explorer.exe", (string)((Button)s).Tag)));
-                                entriesAdded++;
+                                buttons.Add(("Saves", BuildButton("> Saves", savesPath, null, (s, e) =>
+                                    Process.Start("explorer.exe", (string)((Button)s).Tag))));
                             }
 
                             if (Directory.Exists(manualsPath))
                             {
-                                groupPanel.Controls.Add(BuildButton("> Manuals", manualsPath, null, (s, e) =>
-                                    Process.Start("explorer.exe", (string)((Button)s).Tag)));
-                                entriesAdded++;
+                                buttons.Add(("Manuals", BuildButton("> Manuals", manualsPath, null, (s, e) =>
+                                    Process.Start("explorer.exe", (string)((Button)s).Tag))));
                             }
 
+                            // Add EXE buttons with fixed width
                             foreach (var exePath in exeFiles)
                             {
                                 string exeName = Path.GetFileName(exePath).ToLowerInvariant();
@@ -160,7 +177,6 @@ namespace WDSSuperMenu
                                 if (string.IsNullOrEmpty(appName))
                                     continue;
 
-                                // Get icon from the .exe itself
                                 Icon exeIcon = null;
                                 try
                                 {
@@ -169,12 +185,47 @@ namespace WDSSuperMenu
                                 }
                                 catch (Exception ex)
                                 {
-                                    LogError($"Failed to extract icon from {exePath}: {ex}");
+                                    LogToFile($"Failed to extract icon from {exePath}: {ex}");
                                 }
 
-                                groupPanel.Controls.Add(BuildButton(appName, exePath, exeIcon, (s, e) =>
-                                    LaunchApplication((string)((Button)s).Tag)));
-                                entriesAdded++;
+                                var button = BuildButton(appName, exePath, exeIcon, (s, e) =>
+                                    LaunchApplication((string)((Button)s).Tag));
+                                button.AutoSize = false; // Disable autosize for fixed width
+                                button.Size = new Size(maxButtonWidth, 30); // Set consistent width
+                                buttons.Add((appName, button));
+                                LogToFile($"Created button '{appName}' with width: {button.Width}px");
+                            }
+
+                            // Add Saves and Manuals buttons first
+                            foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals"))
+                            {
+                                groupPanel.Controls.Add(button.Control);
+                            }
+
+                            // Sort EXE buttons and add placeholders for missing ones
+                            var exeButtons = buttons.Where(b => desiredButtonOrder.Contains(b.Name)).ToList();
+                            int entriesAdded = buttons.Count(b => b.Name == "Saves" || b.Name == "Manuals");
+
+                            foreach (var desiredName in desiredButtonOrder)
+                            {
+                                var matchingButton = exeButtons.FirstOrDefault(b => b.Name == desiredName);
+                                if (matchingButton.Control != null)
+                                {
+                                    groupPanel.Controls.Add(matchingButton.Control);
+                                    entriesAdded++;
+                                }
+                                else
+                                {
+                                    // Add a placeholder (Label) to maintain alignment
+                                    var placeholder = new Label
+                                    {
+                                        Size = new Size(maxButtonWidth, 30), // Match max button width
+                                        Margin = new Padding(4), // Match button's margin
+                                        Text = "" // Empty text for placeholder
+                                    };
+                                    groupPanel.Controls.Add(placeholder);
+                                    LogToFile($"Added placeholder for '{desiredName}' with width: {maxButtonWidth}px");
+                                }
                             }
 
                             if (entriesAdded > 0)
@@ -188,7 +239,7 @@ namespace WDSSuperMenu
                     }
                     catch (Exception ex)
                     {
-                        LogError($"Error processing drive {drive.Name}: {ex}");
+                        LogToFile($"Error processing drive {drive.Name}: {ex}");
                         continue;
                     }
                 }
@@ -218,9 +269,23 @@ namespace WDSSuperMenu
             }
             catch (Exception ex)
             {
-                LogError($"Failed to retrieve icon for {subdirName}: {ex}");
+                LogToFile($"Failed to retrieve icon for {subdirName}: {ex}");
             }
-            return null; // No icon found
+            return null;
+        }
+
+        // Helper to provide a default icon for width calculation
+        private Icon GetDefaultIcon()
+        {
+            try
+            {
+                // Use a system icon (e.g., from shell32.dll) for width calculation
+                return Icon.ExtractAssociatedIcon(Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\shell32.dll");
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static Button BuildButton(string text, string tag, Icon icon, EventHandler onClick)
@@ -241,18 +306,20 @@ namespace WDSSuperMenu
             {
                 try
                 {
-                    // Convert Icon to Bitmap for the button (16x16 for consistency)
                     button.Image = icon.ToBitmap().GetThumbnailImage(16, 16, null, IntPtr.Zero);
                 }
                 catch (Exception ex)
                 {
-                    LogError($"Failed to set icon for button {text}: {ex}");
+                    LogToFile($"Failed to set icon for button {text}: {ex}");
                 }
             }
 
-            button.Click += onClick;
-            ToolTip toolTip = new ToolTip();
-            toolTip.SetToolTip(button, $"Open {text} at {tag}");
+            if (onClick != null)
+            {
+                button.Click += onClick;
+                ToolTip toolTip = new ToolTip();
+                toolTip.SetToolTip(button, $"Open {text} at {tag}");
+            }
             return button;
         }
 
@@ -281,51 +348,44 @@ namespace WDSSuperMenu
         {
             try
             {
-                // Verify file exists and is likely an executable
                 if (!File.Exists(filePath))
                 {
                     MessageBox.Show($"EXE not found at: {filePath}");
                     return;
                 }
 
-                // Ensure the file has a .exe extension
                 if (!string.Equals(Path.GetExtension(filePath), ".exe", StringComparison.OrdinalIgnoreCase))
                 {
                     MessageBox.Show($"File at {filePath} is not an executable (.exe).");
                     return;
                 }
 
-                // Set up the process start info
                 var psi = new ProcessStartInfo
                 {
                     FileName = filePath,
-                    WorkingDirectory = Path.GetDirectoryName(filePath) ?? string.Empty, // Set to the executable's directory
-                    UseShellExecute = true, // Use shell for compatibility
-                                            // Optionally add: Arguments = "", if specific arguments are needed
+                    WorkingDirectory = Path.GetDirectoryName(filePath) ?? string.Empty,
+                    UseShellExecute = true
                 };
 
-                // Attempt to start the process
                 using (var process = Process.Start(psi))
                 {
                     if (process == null)
                     {
                         MessageBox.Show($"Failed to start process for {filePath}: No process was created.");
-                        LogError($"No process created for {filePath}");
+                        LogToFile($"No process created for {filePath}");
                         return;
                     }
 
-                    // Optionally wait for a short time to detect immediate crashes
-                    process.WaitForExit(1000); // Wait up to 1 second
+                    process.WaitForExit(1000);
                     if (process.HasExited && process.ExitCode != 0)
                     {
                         MessageBox.Show($"Application {filePath} exited immediately with code {process.ExitCode}.");
-                        LogError($"Application {filePath} exited with code {process.ExitCode}");
+                        LogToFile($"Application {filePath} exited with code {process.ExitCode}");
                     }
                 }
             }
-            catch (Win32Exception ex) when (ex.NativeErrorCode == 740) // ERROR_ELEVATION_REQUIRED
+            catch (Win32Exception ex) when (ex.NativeErrorCode == 740)
             {
-                // Handle case where elevation is required
                 DialogResult result = MessageBox.Show(
                     $"The application {filePath} requires administrative privileges. Retry with elevation?",
                     "Elevation Required",
@@ -341,33 +401,33 @@ namespace WDSSuperMenu
                             FileName = filePath,
                             WorkingDirectory = Path.GetDirectoryName(filePath) ?? string.Empty,
                             UseShellExecute = true,
-                            Verb = "runas" // Request elevation
+                            Verb = "runas"
                         };
                         Process.Start(psiElevated);
                     }
                     catch (Exception exElevated)
                     {
                         MessageBox.Show($"Failed to launch {filePath} with elevation: {exElevated.Message}");
-                        LogError($"Elevation failed for {filePath}: {exElevated}");
+                        LogToFile($"Elevation failed for {filePath}: {exElevated}");
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to launch '{filePath}':\n{ex.Message}\nDetails: {ex}");
-                LogError($"Failed to launch {filePath}: {ex}");
+                LogToFile($"Failed to launch {filePath}: {ex}");
             }
         }
 
-        private static void LogError(string message)
+        private static void LogToFile(string message)
         {
             try
             {
-                File.AppendAllText("error.log", $"{DateTime.Now}: {message}\n");
+                File.AppendAllText("app.log", $"{DateTime.Now}: {message}\n");
             }
             catch
             {
-                // Suppress logging errors to avoid secondary failures
+                // Suppress logging errors
             }
         }
     }

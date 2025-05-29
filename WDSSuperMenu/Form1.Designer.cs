@@ -49,7 +49,7 @@
             // MainForm
             // 
             this.ClientSize = new System.Drawing.Size(600, 400);
-            this.Text = "WDS Folder Finder";
+            this.Text = "WDS Super Menu";
             this.ResumeLayout(false);
         }
 
