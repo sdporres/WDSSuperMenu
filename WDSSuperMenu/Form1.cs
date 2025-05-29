@@ -16,7 +16,7 @@ namespace WDSSuperMenu
             Version = version;
         }
     }
-        public partial class Form1 : Form
+    public partial class Form1 : Form
     {
         private int pictureBoxSize = 32;
         private readonly Dictionary<string, RegistryEntry> registryIconCache;
@@ -148,7 +148,7 @@ namespace WDSSuperMenu
                                 FlowDirection = FlowDirection.LeftToRight,
                                 AutoSize = true,
                                 WrapContents = false,
-                                Margin = new Padding(20,6,6,6)
+                                Margin = new Padding(20, 6, 6, 6)
                             };
 
                             // Add icon or placeholder and label to groupPanel
@@ -476,14 +476,16 @@ namespace WDSSuperMenu
 
         private static void LogToFile(string message)
         {
+#if DEBUG
             try
             {
-                File.AppendAllText("app.log", $"{DateTime.Now}: {message}\n");
+                File.AppendAllText("debug.log", $"{DateTime.Now}: {message}\n");
             }
             catch
             {
                 // Suppress logging errors
             }
+#endif
         }
     }
 }
