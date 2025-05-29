@@ -148,7 +148,7 @@ namespace WDSSuperMenu
                                 FlowDirection = FlowDirection.LeftToRight,
                                 AutoSize = true,
                                 WrapContents = false,
-                                Margin = new Padding(6)
+                                Margin = new Padding(20,6,6,6)
                             };
 
                             // Add icon or placeholder and label to groupPanel
