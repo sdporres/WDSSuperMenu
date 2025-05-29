@@ -34,6 +34,7 @@
             this.MinimumSize = new Size(600, 400);
             this.AutoScroll = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             this.flowLayoutPanel = new FlowLayoutPanel();
             this.SuspendLayout();
@@ -51,6 +52,16 @@
             this.ClientSize = new System.Drawing.Size(600, 400);
             this.Text = "WDS Super Menu";
             this.ResumeLayout(false);
+
+            this.Resize += MainForm_Resize;
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            if (this.Width != 1100)
+            {
+                this.Width = 1100;
+            }
         }
 
         #endregion

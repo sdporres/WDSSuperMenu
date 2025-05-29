@@ -4,10 +4,22 @@ using System.Diagnostics;
 
 namespace WDSSuperMenu
 {
-    public partial class Form1 : Form
+    public class RegistryEntry
+    {
+        public string ProductName { get; set; }
+        public string ProductIcon { get; set; }
+        public string Version { get; set; }
+        public RegistryEntry(string productName, string productIcon, string version)
+        {
+            ProductName = productName;
+            ProductIcon = productIcon;
+            Version = version;
+        }
+    }
+        public partial class Form1 : Form
     {
         private int pictureBoxSize = 32;
-        private readonly Dictionary<string, string> registryIconCache;
+        private readonly Dictionary<string, RegistryEntry> registryIconCache;
         public Form1()
         {
             InitializeComponent();
@@ -15,9 +27,9 @@ namespace WDSSuperMenu
             ScanForWDSFolders();
         }
 
-        private Dictionary<string, string> BuildRegistryIconCache()
+        private Dictionary<string, RegistryEntry> BuildRegistryIconCache()
         {
-            var cache = new Dictionary<string, string>();
+            var cache = new Dictionary<string, RegistryEntry>();
             try
             {
                 using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
@@ -39,13 +51,20 @@ namespace WDSSuperMenu
 
                                 string productName = productKey.GetValue("ProductName")?.ToString();
                                 string productIcon = productKey.GetValue("ProductIcon")?.ToString();
+                                object productVersionObject = productKey.GetValue("Version");
+                                string productVersion = string.Empty;
+                                if (productVersionObject != null && productVersionObject is int intValue)
+                                {
+                                    var versionHex = $"{intValue:X}";
+                                    productVersion = ParseVersion(versionHex);
+                                }
 
                                 if (string.IsNullOrEmpty(productName) || string.IsNullOrEmpty(productIcon) ||
                                     !File.Exists(productIcon) ||
                                     !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
                                     continue;
 
-                                cache[productName.ToLowerInvariant()] = productIcon;
+                                cache[productName.ToLowerInvariant()] = new RegistryEntry(productName, productIcon, productVersion);
                                 LogToFile($"Cached icon for ProductName: {productName}, ProductIcon: {productIcon}");
                             }
                         }
@@ -61,6 +80,20 @@ namespace WDSSuperMenu
                 LogToFile($"Failed to build registry icon cache: {ex}");
             }
             return cache;
+        }
+
+        public static string ParseVersion(string hexValue)
+        {
+            // Convert hex string to uint
+            uint value = Convert.ToUInt32(hexValue, 16);
+
+            // Extract major, minor, and patch versions
+            int major = (int)(value >> 24) & 0xFF; // First byte
+            int minor = (int)(value >> 16) & 0xFF; // Second byte
+            int patch = (int)(value & 0xFFFF);     // Last two bytes
+
+            // Format as version string
+            return $"{major}.{minor:D2}.{patch}";
         }
 
         private void ScanForWDSFolders()
@@ -145,10 +178,11 @@ namespace WDSSuperMenu
 
                             groupPanel.Controls.Add(pictureBox);
 
+                            var subDirName = Path.GetFileName(subdir);
                             groupPanel.Controls.Add(new Label
                             {
-                                Text = Path.GetFileName(subdir),
-                                Width = 200,
+                                Text = $"{subDirName} ({GetVersionFromRegistry(subDirName)})",
+                                Width = 250,
                                 AutoSize = false,
                                 Margin = new Padding(3)
                             });
@@ -253,6 +287,27 @@ namespace WDSSuperMenu
             }
         }
 
+        private string GetVersionFromRegistry(string subdirName)
+        {
+            try
+            {
+                string subdirLower = subdirName.ToLowerInvariant();
+                foreach (var entry in registryIconCache)
+                {
+                    if (entry.Key.Contains(subdirLower))
+                    {
+                        string productVersion = entry.Value.Version;
+                        return productVersion;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToFile($"Failed to retrieve version for {subdirName}: {ex}");
+            }
+            return null;
+        }
+
         private Icon GetIconFromRegistry(string subdirName)
         {
             try
@@ -262,7 +317,7 @@ namespace WDSSuperMenu
                 {
                     if (entry.Key.Contains(subdirLower))
                     {
-                        string productIcon = entry.Value;
+                        string productIcon = entry.Value.ProductIcon;
                         return Icon.ExtractAssociatedIcon(productIcon);
                     }
                 }
