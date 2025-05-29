@@ -6,6 +6,7 @@ namespace WDSSuperMenu
 {
     public partial class Form1 : Form
     {
+        private int pictureBoxSize = 32;
         public Form1()
         {
             InitializeComponent();
@@ -39,6 +40,8 @@ namespace WDSSuperMenu
                             string manualsPath = Path.Combine(subdir, "manuals");
                             string[] exeFiles = Directory.GetFiles(subdir, "*.exe", SearchOption.TopDirectoryOnly);
 
+                            Icon groupIcon = GetIconFromRegistry(Path.GetFileName(subdir));
+
                             var groupPanel = new FlowLayoutPanel
                             {
                                 FlowDirection = FlowDirection.LeftToRight,
@@ -46,7 +49,39 @@ namespace WDSSuperMenu
                                 WrapContents = false,
                                 Margin = new Padding(6)
                             };
-                            groupPanel.Controls.Add(new Label { Text = Path.GetFileName(subdir), Width = 200 });
+
+                            // Add icon or placeholder and label to groupPanel
+                            int iconSize = groupIcon != null && groupIcon.Width > 32 ? 64 : 32; // Fallback to 32x32 if icon is small or missing
+                            var pictureBox = new PictureBox
+                            {
+                                Size = new Size(iconSize, iconSize),
+                                Margin = new Padding(0, 3, 8, 3) // Consistent margin for alignment
+                            };
+
+                            if (groupIcon != null)
+                            {
+                                try
+                                {
+                                    pictureBox.Image = groupIcon.ToBitmap().GetThumbnailImage(iconSize, iconSize, null, IntPtr.Zero);
+                                    LogError($"Group icon for {Path.GetFileName(subdir)} set to {iconSize}x{iconSize}, native size: {groupIcon.Width}x{groupIcon.Height}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogError($"Failed to set group icon for {Path.GetFileName(subdir)}: {ex}");
+                                }
+                            }
+                            else
+                            {
+                                LogError($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
+                            }
+                            groupPanel.Controls.Add(pictureBox);
+                            groupPanel.Controls.Add(new Label
+                            {
+                                Text = Path.GetFileName(subdir),
+                                Width = 200,
+                                AutoSize = false,
+                                Margin = new Padding(3)
+                            });
 
                             int entriesAdded = 0;
 
@@ -69,10 +104,18 @@ namespace WDSSuperMenu
                                 if (string.IsNullOrEmpty(appName))
                                     continue;
 
-                                // Get icon from registry
-                                Icon icon = GetIconFromRegistry(Path.GetFileName(subdir), exePath);
+                                Icon exeIcon = null;
+                                try
+                                {
+                                    if (File.Exists(exePath))
+                                        exeIcon = Icon.ExtractAssociatedIcon(exePath);
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogError($"Failed to extract icon from {exePath}: {ex}");
+                                }
 
-                                groupPanel.Controls.Add(BuildButton(appName, exePath, icon, (s, e) =>
+                                groupPanel.Controls.Add(BuildButton(appName, exePath, exeIcon, (s, e) =>
                                 {
                                     var filePath = (string)((Button)s).Tag;
                                     LaunchApplication(filePath);
@@ -105,14 +148,14 @@ namespace WDSSuperMenu
             }
         }
 
-        private Icon GetIconFromRegistry(string subdirName, string exePath)
+        private Icon GetIconFromRegistry(string subdirName)
         {
             try
             {
                 using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
                 {
                     if (productsKey == null)
-                        return Icon.ExtractAssociatedIcon(exePath); // Fallback to exe icon
+                        return null;
 
                     foreach (string productSubKeyName in productsKey.GetSubKeyNames())
                     {
@@ -131,7 +174,6 @@ namespace WDSSuperMenu
                                 !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
                                 continue;
 
-                            // ProductIcon is a path to an .exe file
                             return Icon.ExtractAssociatedIcon(productIcon);
                         }
                     }
@@ -139,9 +181,9 @@ namespace WDSSuperMenu
             }
             catch (Exception ex)
             {
-                LogError($"Failed to retrieve icon for {subdirName} ({exePath}): {ex}");
+                LogError($"Failed to retrieve icon for {subdirName}: {ex}");
             }
-            return Icon.ExtractAssociatedIcon(exePath); // Fallback to the target .exe's icon
+            return null; // No icon found
         }
 
         private static Button BuildButton(string text, string tag, Icon icon, EventHandler onClick)
