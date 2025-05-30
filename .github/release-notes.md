@@ -1,0 +1,1 @@
+- Fix for detecting installed games

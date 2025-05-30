@@ -1,15 +1,17 @@
-name: Release .NET 9.0 Project
+name: Generate Release from tag
 
 on:
   push:
     tags:
-      - 'v*'  # Triggers on tags starting with 'v'
+      - 'v*'  # Triggers on tags like v1.0.0
+
 permissions:
-  contents: write
-  
+  contents: write  # Required to create or update releases
+
 jobs:
   build-and-release:
     runs-on: windows-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,20 +22,23 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore WDSSuperMenu/WDSSuperMenu.csproj
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+      - name: Build specific project
+        run: dotnet build WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-restore
 
-      - name: Publish
-        run: dotnet publish --configuration Release --no-build --output ./publish
+      - name: Publish specific project
+        run: dotnet publish WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-build --output ./publish
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Zip published output
+        run: Compress-Archive -Path ./publish/* -DestinationPath ./WDSSuperMenu-${{ github.ref_name }}.zip
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          body: |
-            Automated release for ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body_path: .github/release-notes.md
+          files: WDSSuperMenu-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
