@@ -121,18 +121,12 @@ namespace WDSSuperMenu
 
             try
             {
-                foreach (var drive in DriveInfo.GetDrives())
+                var werwe = RegistryAppFinder.FindUniqueParentDirectories();
+                foreach (var rootTHings in werwe)
                 {
                     try
                     {
-                        if (!drive.IsReady || drive.DriveType != DriveType.Fixed)
-                            continue;
-
-                        string wdsPath = Path.Combine(drive.RootDirectory.FullName, folderName);
-                        if (!Directory.Exists(wdsPath))
-                            continue;
-
-                        string[] subdirectories = Directory.GetDirectories(wdsPath);
+                        string[] subdirectories = Directory.GetDirectories(rootTHings);
                         foreach (string subdir in subdirectories)
                         {
                             string savesPath = Path.Combine(subdir, "saves");
@@ -273,8 +267,7 @@ namespace WDSSuperMenu
                     }
                     catch (Exception ex)
                     {
-                        LogToFile($"Error processing drive {drive.Name}: {ex}");
-                        continue;
+                        LogToFile($"Error processing subdirectory {rootTHings}: {ex}");
                     }
                 }
 

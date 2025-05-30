@@ -14,4 +14,8 @@
     <Content Include="image.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\WDSSuperMenu.Core\WDSSuperMenu.Core.csproj" />
+  </ItemGroup>
+
 </Project>

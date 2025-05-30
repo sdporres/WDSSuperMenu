@@ -3,6 +3,6 @@ using WDSSuperMenu;
 
 Console.WriteLine("Hello, World!");
 
-var publisherApps = RegistryAppFinder.GetAppsByPublisher();
+var publisherApps = RegistryAppFinder.FindUniqueParentDirectories();
 
 Console.ReadKey();

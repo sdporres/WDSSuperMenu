@@ -19,14 +19,14 @@ namespace WDSSuperMenu
 
     public static class RegistryAppFinder
     {
-        public static List<string> GetAppsByPublisher()
+        public static List<string> FindUniqueParentDirectories()
         {
-            var installLocations = new List<string>();
+            var uniqueParentDirectories = new HashSet<string>();
             const string targetPublisher = "Wargame Design Studio";
 
             using (RegistryKey baseKey = RegistryKey.OpenBaseKey(
-                      RegistryHive.LocalMachine,
-                      RegistryView.Registry64))
+                RegistryHive.LocalMachine,
+                RegistryView.Registry64))
             {
                 RegistryKey userDataKey = baseKey.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData");
@@ -46,13 +46,16 @@ namespace WDSSuperMenu
                                     $@"{productGuid}\InstallProperties"))
                                 {
                                     if (installProps?.GetValue("DisplayName") as string == "WDS Menu") continue;
-                                        
 
                                     if (installProps?.GetValue("Publisher") as string == targetPublisher)
                                     {
                                         string location = installProps.GetValue("InstallLocation") as string;
                                         if (!string.IsNullOrEmpty(location))
-                                            installLocations.Add(location);
+                                        {
+                                            string parentDir = GetParentDirectory(location);
+                                            if (!string.IsNullOrEmpty(parentDir))
+                                                uniqueParentDirectories.Add(parentDir);
+                                        }
                                     }
                                 }
                             }
@@ -62,27 +65,7 @@ namespace WDSSuperMenu
                     userDataKey.Dispose();
                 }
             }
-            var uniqueParentDirectories = new List<string>();
-            var roots = installLocations.Select(x => GetParentDirectory(x.ToLower())).Distinct();
-            foreach (var path in roots)
-            {
-                string[] subdirectories = Directory.GetDirectories(path);
-
-                foreach (var subdir in subdirectories)
-                {
-                   var exeFiles = Directory.GetFiles(subdir, "*.exe", SearchOption.TopDirectoryOnly)
-                         .Where(file =>
-                         {
-                             string lower = Path.GetFileName(file).ToLowerInvariant();
-                             return true;
-                         })
-                         .ToList();
-
-                    uniqueParentDirectories.AddRange(exeFiles);
-                }
-            }
-
-            return uniqueParentDirectories;
+            return new List<string>(uniqueParentDirectories);
         }
 
         private static string GetParentDirectory(string path)
@@ -93,11 +76,22 @@ namespace WDSSuperMenu
             try
             {
                 var dirInfo = new DirectoryInfo(path.Trim());
-                return dirInfo.Parent?.FullName;
+                var parent = dirInfo.Parent?.FullName;
+                if (parent == null)
+                    return null;
+
+                // Normalize: lower case, trim trailing separators
+                parent = parent.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                               .ToLowerInvariant();
+
+                // Optional: Skip root directories (e.g., "e:")
+                if (parent.Length == 2 && parent[1] == ':')
+                    return null;
+
+                return parent;
             }
             catch
             {
-                // Handle invalid paths gracefully
                 return null;
             }
         }
