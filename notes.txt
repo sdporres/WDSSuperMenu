@@ -1,0 +1,6 @@
+Install path
+Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products\029BA0378B4E03F44BF34C4E6BDEB483\InstallProperties
+
+WDS options
+Computer\HKEY_USERS\S-1-5-21-2003196712-2746918126-332173211-1001\Software\WDS LLC\{APPLICATION NAME}\Options
+
