@@ -19,41 +19,87 @@ namespace WDSSuperMenu
 
     public static class RegistryAppFinder
     {
-        public static List<InstalledAppInfo> GetAppsByPublisher(string publisherName)
+        public static List<string> GetAppsByPublisher()
         {
-            string folderName = "WDS";
-            var foundPaths = new List<string>();
+            var installLocations = new List<string>();
+            const string targetPublisher = "Wargame Design Studio";
 
-            foreach (var drive in DriveInfo.GetDrives())
+            using (RegistryKey baseKey = RegistryKey.OpenBaseKey(
+                      RegistryHive.LocalMachine,
+                      RegistryView.Registry64))
             {
-                if (!drive.IsReady || drive.DriveType != DriveType.Fixed)
-                    continue;
+                RegistryKey userDataKey = baseKey.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData");
 
-                string potentialPath = Path.Combine(drive.RootDirectory.FullName, folderName);
-
-                if (Directory.Exists(potentialPath))
+                if (userDataKey != null)
                 {
-                    foundPaths.Add(potentialPath);
+                    foreach (string userSid in userDataKey.GetSubKeyNames())
+                    {
+                        RegistryKey productsKey = userDataKey.OpenSubKey(
+                            $@"{userSid}\Products");
+
+                        if (productsKey != null)
+                        {
+                            foreach (string productGuid in productsKey.GetSubKeyNames())
+                            {
+                                using (RegistryKey installProps = productsKey.OpenSubKey(
+                                    $@"{productGuid}\InstallProperties"))
+                                {
+                                    if (installProps?.GetValue("DisplayName") as string == "WDS Menu") continue;
+                                        
+
+                                    if (installProps?.GetValue("Publisher") as string == targetPublisher)
+                                    {
+                                        string location = installProps.GetValue("InstallLocation") as string;
+                                        if (!string.IsNullOrEmpty(location))
+                                            installLocations.Add(location);
+                                    }
+                                }
+                            }
+                            productsKey.Dispose();
+                        }
+                    }
+                    userDataKey.Dispose();
                 }
             }
-
-            foreach (var path in foundPaths)
+            var uniqueParentDirectories = new List<string>();
+            var roots = installLocations.Select(x => GetParentDirectory(x.ToLower())).Distinct();
+            foreach (var path in roots)
             {
                 string[] subdirectories = Directory.GetDirectories(path);
 
                 foreach (var subdir in subdirectories)
                 {
-                    string[] exeFiles = Directory.GetFiles(subdir, "*.exe", SearchOption.TopDirectoryOnly)
+                   var exeFiles = Directory.GetFiles(subdir, "*.exe", SearchOption.TopDirectoryOnly)
                          .Where(file =>
                          {
                              string lower = Path.GetFileName(file).ToLowerInvariant();
                              return true;
                          })
-                         .ToArray();
+                         .ToList();
+
+                    uniqueParentDirectories.AddRange(exeFiles);
                 }
             }
 
-            return null;
+            return uniqueParentDirectories;
+        }
+
+        private static string GetParentDirectory(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+
+            try
+            {
+                var dirInfo = new DirectoryInfo(path.Trim());
+                return dirInfo.Parent?.FullName;
+            }
+            catch
+            {
+                // Handle invalid paths gracefully
+                return null;
+            }
         }
     }
 

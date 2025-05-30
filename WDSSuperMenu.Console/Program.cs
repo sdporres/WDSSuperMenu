@@ -3,6 +3,6 @@ using WDSSuperMenu;
 
 Console.WriteLine("Hello, World!");
 
-var adobeApps = RegistryAppFinder.GetAppsByPublisher("WDS LLC");
+var publisherApps = RegistryAppFinder.GetAppsByPublisher();
 
 Console.ReadKey();
