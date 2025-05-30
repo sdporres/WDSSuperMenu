@@ -173,9 +173,10 @@ namespace WDSSuperMenu
                             groupPanel.Controls.Add(pictureBox);
 
                             var subDirName = Path.GetFileName(subdir);
+                            var versionLabel = GetVersionFromRegistry(subDirName);
                             groupPanel.Controls.Add(new Label
                             {
-                                Text = $"{subDirName} ({GetVersionFromRegistry(subDirName)})",
+                                Text = $"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({GetVersionFromRegistry(subDirName)})")}",
                                 Width = 250,
                                 AutoSize = false,
                                 Margin = new Padding(3)
