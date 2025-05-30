@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 
 namespace WDSSuperMenu
 {
@@ -103,12 +104,9 @@ namespace WDSSuperMenu
             int maxGroupPanelWidth = 0;
             int totalHeight = 0;
 
-            // Define the desired button order
-            var desiredButtonOrder = new List<string> { "Scenario Game", "Campaign Game", "Scenario Editor", "Campaign Editor" };
-
             // Calculate the maximum button width for EXE buttons, including icon
             int maxButtonWidth = 0;
-            foreach (var buttonName in desiredButtonOrder)
+            foreach (var buttonName in ExeNameMappings.OrderBy(x => x.Value.Order).Select(x => x.Value.Name))
             {
                 var tempButton = BuildButton(buttonName, "", GetDefaultIcon(), null);
                 tempButton.AutoSize = true; // Ensure autosize for measurement
@@ -232,12 +230,13 @@ namespace WDSSuperMenu
                             }
 
                             // Sort EXE buttons and add placeholders for missing ones
-                            var exeButtons = buttons.Where(b => desiredButtonOrder.Contains(b.Name)).ToList();
+                            //var exeButtons = buttons.Where(b => ExeNameMappings.Values.Any(x => x.Equals(b.Name))).ToList();
+
                             int entriesAdded = buttons.Count(b => b.Name == "Saves" || b.Name == "Manuals");
 
-                            foreach (var desiredName in desiredButtonOrder)
+                            foreach (var desiredName in ExeNameMappings.OrderBy(x => x.Value.Order).Select(x => x.Value.Name))
                             {
-                                var matchingButton = exeButtons.FirstOrDefault(b => b.Name == desiredName);
+                                var matchingButton = buttons.FirstOrDefault(b => b.Name == desiredName);
                                 if (matchingButton.Control != null)
                                 {
                                     groupPanel.Controls.Add(matchingButton.Control);
@@ -356,6 +355,9 @@ namespace WDSSuperMenu
                 try
                 {
                     button.Image = icon.ToBitmap().GetThumbnailImage(16, 16, null, IntPtr.Zero);
+                    int groupWidth = button.Image.Width + TextRenderer.MeasureText(button.Text, button.Font).Width;
+                    int padding = ((button.Width - groupWidth) / 2) + 8;
+                    button.Padding = new Padding(padding, 0, 0, 0);
                 }
                 catch (Exception ex)
                 {
@@ -367,30 +369,31 @@ namespace WDSSuperMenu
             {
                 button.Click += onClick;
                 ToolTip toolTip = new ToolTip();
-                toolTip.SetToolTip(button, $"Open {text} at {tag}");
+                toolTip.SetToolTip(button, $"Open {tag}");
             }
             return button;
         }
 
-        private static readonly Dictionary<string, string> ExeNameMappings = new()
+        private static readonly Dictionary<string, ExeNameOrder> ExeNameMappings = new()
         {
-            { "camp", "Campaign Editor" },
-            { "edit", "Scenario Editor" },
-            { "start", "Campaign Game" }
+            { "camp", new ExeNameOrder("Campaign Editor", 4) },
+            { "edit", new ExeNameOrder("Scenario Editor", 3) },
+            { "start", new ExeNameOrder("Campaign Game", 2) },
+            { "default", new ExeNameOrder("Scenario Game", 1)}
         };
 
         private static string BuildAppName(string exeName)
         {
             exeName = exeName.ToLowerInvariant();
             if (exeName.Contains("demo") || Path.GetFileNameWithoutExtension(exeName).Length <= 4)
-                return "Scenario Game";
+                return ExeNameMappings["default"].Name;
 
             foreach (var mapping in ExeNameMappings)
             {
                 if (exeName.Contains(mapping.Key))
-                    return mapping.Value;
+                    return mapping.Value.Name;
             }
-            return string.Empty;
+            return null;
         }
 
         private void LaunchApplication(string filePath)
@@ -481,5 +484,18 @@ namespace WDSSuperMenu
             }
 #endif
         }
+
+    }
+
+    public class ExeNameOrder
+    {
+        public ExeNameOrder(string name, int order)
+        {
+            Name = name;
+            Order = order;
+        }
+
+        public string Name { get; set; }
+        public int Order { get; set; }
     }
 }
