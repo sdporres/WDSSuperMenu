@@ -1,6 +1,9 @@
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace WDSSuperMenu
 {
@@ -21,27 +24,75 @@ namespace WDSSuperMenu
     {
         private Dictionary<string, RegistryProductEntry> registryIconCache;
         private Dictionary<string, Dictionary<string, string>> registryOptionsCache;
+
         public Form1()
         {
             InitializeComponent();
+            // Hide form and prevent any rendering
+            Opacity = 0;
+            Visible = false;
+            SuspendLayout();
             LoadDataAsync();
         }
 
         private async void LoadDataAsync()
         {
-            // Run heavy work in the background
-            var iconCacheTask = Task.Run(() => BuildRegistryIconCache());
-            var optionsCacheTask = Task.Run(() => BuildRegistryOptionsCache());
-
-            Task.WaitAll(iconCacheTask, optionsCacheTask);
-
-            // Now update the UI (on UI thread)
-            this.Invoke((MethodInvoker)delegate
+            // Create and show loading dialog
+            using (var loadingDialog = new LoadingDialog())
             {
-                registryIconCache = iconCacheTask.Result;
-                registryOptionsCache = optionsCacheTask.Result;
-                ScanForWDSFolders(); // This may also need to be async!
-            });
+                loadingDialog.Show();
+                Application.DoEvents(); // Ensure dialog is rendered
+
+                // Run heavy work in the background
+                var iconCacheTask = Task.Run(() => BuildRegistryIconCache());
+                var optionsCacheTask = Task.Run(() => BuildRegistryOptionsCache());
+
+                await Task.WhenAll(iconCacheTask, optionsCacheTask);
+
+                // Update UI on UI thread
+                await Task.Run(() =>
+                {
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        registryIconCache = iconCacheTask.Result;
+                        registryOptionsCache = optionsCacheTask.Result;
+                        ScanForWDSFolders();
+                        // Force complete layout
+                        flowLayoutPanel.PerformLayout();
+                        this.PerformLayout();
+                        ResumeLayout(true);
+                    });
+                });
+
+                // Show form only after all rendering is complete
+                this.Invoke((MethodInvoker)delegate
+                {
+                    Opacity = 1;
+                    Visible = true;
+                    loadingDialog.Close();
+                });
+            }
+        }
+
+        private class LoadingDialog : Form
+        {
+            public LoadingDialog()
+            {
+                Text = "Loading";
+                Size = new Size(200, 100);
+                StartPosition = FormStartPosition.CenterScreen;
+                FormBorderStyle = FormBorderStyle.FixedDialog;
+                ControlBox = false;
+                ShowInTaskbar = false;
+
+                var label = new Label
+                {
+                    Text = "Loading, please wait...",
+                    AutoSize = true,
+                    Location = new Point(20, 30)
+                };
+                Controls.Add(label);
+            }
         }
 
         private Dictionary<string, RegistryProductEntry> BuildRegistryIconCache()
@@ -136,7 +187,6 @@ namespace WDSSuperMenu
                                             var valueHex = $"{intValue:X}";
                                             cache[appName][optionsValueName] = valueHex;
                                         }
-
                                     }
                                 }
                             }
@@ -158,15 +208,10 @@ namespace WDSSuperMenu
 
         public static string ParseVersion(string hexValue)
         {
-            // Convert hex string to uint
             uint value = Convert.ToUInt32(hexValue, 16);
-
-            // Extract major, minor, and patch versions
-            int major = (int)(value >> 24) & 0xFF; // First byte
-            int minor = (int)(value >> 16) & 0xFF; // Second byte
-            int patch = (int)(value & 0xFFFF);     // Last two bytes
-
-            // Format as version string
+            int major = (int)(value >> 24) & 0xFF;
+            int minor = (int)(value >> 16) & 0xFF;
+            int patch = (int)(value & 0xFFFF);
             return $"{major}.{minor:D2}.{patch}";
         }
 
@@ -176,12 +221,11 @@ namespace WDSSuperMenu
             int maxGroupPanelWidth = 0;
             int totalHeight = 0;
 
-            // Calculate the maximum button width for EXE buttons, including icon
             int maxButtonWidth = 0;
             foreach (var buttonName in ExeNameMappings.OrderBy(x => x.Value.Order).Select(x => x.Value.Name))
             {
                 var tempButton = BuildButton(buttonName, "", GetDefaultIcon(), null);
-                tempButton.AutoSize = true; // Ensure autosize for measurement
+                tempButton.AutoSize = true;
                 tempButton.PerformLayout();
                 int width = tempButton.PreferredSize.Width;
                 maxButtonWidth = Math.Max(maxButtonWidth, width);
@@ -203,10 +247,8 @@ namespace WDSSuperMenu
                             string manualsPath = Path.Combine(subdir, "manuals");
                             string[] exeFiles = Directory.GetFiles(subdir, "*.exe", SearchOption.TopDirectoryOnly);
 
-                            // Get icon for the group panel from cache
                             Icon groupIcon = GetIconFromRegistry(Path.GetFileName(subdir));
 
-                            // Create UI panel for this subdirectory
                             var groupPanel = new FlowLayoutPanel
                             {
                                 FlowDirection = FlowDirection.LeftToRight,
@@ -216,7 +258,6 @@ namespace WDSSuperMenu
                                 Margin = new Padding(12, 6, 6, 6)
                             };
 
-                            // Add icon or placeholder and label to groupPanel
                             int iconSize = groupIcon != null && groupIcon.Width > 32 ? 64 : 32;
                             var pictureBox = new PictureBox
                             {
@@ -243,31 +284,31 @@ namespace WDSSuperMenu
 
                             groupPanel.Controls.Add(pictureBox);
 
-                            var settingsButton = new Button();
-                            settingsButton.Image = Properties.Resources.export_settings;
-                            settingsButton.Width = 30;
-                            settingsButton.Height = 30;
-                            settingsButton.Margin = new Padding(0, 4, 0, 0);
-                            settingsButton.TextImageRelation = TextImageRelation.Overlay;
-                            settingsButton.ImageAlign = ContentAlignment.MiddleCenter;
+                            var settingsButton = new Button
+                            {
+                                Image = Properties.Resources.export_settings,
+                                Width = 30,
+                                Height = 30,
+                                Margin = new Padding(0, 4, 0, 0),
+                                TextImageRelation = TextImageRelation.Overlay,
+                                ImageAlign = ContentAlignment.MiddleCenter
+                            };
                             groupPanel.Controls.Add(settingsButton);
 
                             var subDirName = Path.GetFileName(subdir);
                             var versionLabel = GetVersionFromRegistry(subDirName);
                             groupPanel.Controls.Add(new Label
                             {
-                                Text = $"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({GetVersionFromRegistry(subDirName)})")}",
+                                Text = $"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({versionLabel})")}",
                                 Width = 250,
                                 Height = 30,
-                                AutoSize = false,                              
+                                AutoSize = false,
                                 TextAlign = ContentAlignment.MiddleLeft,
                                 Margin = new Padding(3)
                             });
 
-                            // Collect all buttons for this group
                             var buttons = new List<(string Name, Control Control)>();
 
-                            // Add Saves and Manuals buttons (unchanged width)
                             if (Directory.Exists(savesPath))
                             {
                                 buttons.Add(("Saves", BuildButton("> Saves", savesPath, null, (s, e) =>
@@ -280,7 +321,6 @@ namespace WDSSuperMenu
                                     Process.Start("explorer.exe", (string)((Button)s).Tag))));
                             }
 
-                            // Add EXE buttons with fixed width
                             foreach (var exePath in exeFiles)
                             {
                                 string exeName = Path.GetFileName(exePath).ToLowerInvariant();
@@ -301,20 +341,16 @@ namespace WDSSuperMenu
 
                                 var button = BuildButton(appName, exePath, exeIcon, (s, e) =>
                                     LaunchApplication((string)((Button)s).Tag));
-                                button.AutoSize = false; // Disable autosize for fixed width
-                                button.Size = new Size(maxButtonWidth, 30); // Set consistent width
+                                button.AutoSize = false;
+                                button.Size = new Size(maxButtonWidth, 30);
                                 buttons.Add((appName, button));
                                 LogToFile($"Created button '{appName}' with width: {button.Width}px");
                             }
 
-                            // Add Saves and Manuals buttons first
                             foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals"))
                             {
                                 groupPanel.Controls.Add(button.Control);
                             }
-
-                            // Sort EXE buttons and add placeholders for missing ones
-                            //var exeButtons = buttons.Where(b => ExeNameMappings.Values.Any(x => x.Equals(b.Name))).ToList();
 
                             int entriesAdded = buttons.Count(b => b.Name == "Saves" || b.Name == "Manuals");
 
@@ -328,12 +364,11 @@ namespace WDSSuperMenu
                                 }
                                 else
                                 {
-                                    // Add a placeholder (Label) to maintain alignment
                                     var placeholder = new Label
                                     {
-                                        Size = new Size(maxButtonWidth, 30), // Match max button width
-                                        Margin = new Padding(4), // Match button's margin
-                                        Text = "" // Empty text for placeholder
+                                        Size = new Size(maxButtonWidth, 30),
+                                        Margin = new Padding(4),
+                                        Text = ""
                                     };
                                     groupPanel.Controls.Add(placeholder);
                                     LogToFile($"Added placeholder for '{desiredName}' with width: {maxButtonWidth}px");
@@ -406,12 +441,10 @@ namespace WDSSuperMenu
             return null;
         }
 
-        // Helper to provide a default icon for width calculation
         private Icon GetDefaultIcon()
         {
             try
             {
-                // Use a system icon (e.g., from shell32.dll) for width calculation
                 return Icon.ExtractAssociatedIcon(Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\shell32.dll");
             }
             catch
@@ -576,7 +609,6 @@ namespace WDSSuperMenu
             }
 #endif
         }
-
     }
 
     public class ExeNameOrder
