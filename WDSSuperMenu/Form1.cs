@@ -1,9 +1,5 @@
-using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using WDSSuperMenu.Core;
 
 namespace WDSSuperMenu
@@ -13,7 +9,7 @@ namespace WDSSuperMenu
     public partial class Form1 : Form
     {
         private Dictionary<string, RegistryProductEntry> registryIconCache;
-        private Dictionary<string, Dictionary<string, string>> registryOptionsCache;
+        private List<string> appNameCache = new List<string>();
 
         public Form1()
         {
@@ -35,9 +31,8 @@ namespace WDSSuperMenu
 
                 // Run heavy work in the background
                 var iconCacheTask = Task.Run(() => RegistryTool.BuildRegistryIconCache());
-                var optionsCacheTask = Task.Run(() => RegistryTool.BuildRegistryOptionsCache());
 
-                await Task.WhenAll(iconCacheTask, optionsCacheTask);
+                await Task.WhenAll(iconCacheTask);
 
                 // Update UI on UI thread
                 await Task.Run(() =>
@@ -45,7 +40,6 @@ namespace WDSSuperMenu
                     this.Invoke((MethodInvoker)delegate
                     {
                         registryIconCache = iconCacheTask.Result;
-                        registryOptionsCache = optionsCacheTask.Result;
                         ScanForWDSFolders();
                         // Force complete layout
                         flowLayoutPanel.PerformLayout();
@@ -181,6 +175,7 @@ namespace WDSSuperMenu
                                 TextImageRelation = TextImageRelation.Overlay,
                                 ImageAlign = ContentAlignment.MiddleCenter
                             };
+
                             groupPanel.Controls.Add(settingsButton);
 
                             var subDirName = Path.GetFileName(subdir);
@@ -212,9 +207,35 @@ namespace WDSSuperMenu
                             foreach (var exePath in exeFiles)
                             {
                                 string exeName = Path.GetFileName(exePath).ToLowerInvariant();
-                                var appName = BuildAppName(exeName);
-                                if (string.IsNullOrEmpty(appName))
+                                var appButtonLabel = BuildAppName(exeName);
+                                if (string.IsNullOrEmpty(appButtonLabel))
                                     continue;
+
+                                var appName = Path.GetFileNameWithoutExtension(exeName);
+                                if (appButtonLabel.Equals("Scenario Game") && !appNameCache.Contains(appName))
+                                {
+                                    appNameCache.Add(appName);
+                                    settingsButton.Click += (s, e) =>
+                                    {
+                                        foreach (var targetAppName in appNameCache)
+                                        {
+                                            if(targetAppName.Equals(appName, StringComparison.OrdinalIgnoreCase))
+                                                continue; // Skip copying to itself
+                                            try
+                                            {
+                                                RegistryReplacer.CopySettings(appName, targetAppName);
+                                                Logger.LogToFile($"Copied settings from {appName} to {targetAppName}");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Logger.LogToFile($"Failed to copy settings from {appName} to {targetAppName}: {ex}");
+                                            }
+                                        }
+                                    };
+
+                                    var toolTip = new System.Windows.Forms.ToolTip();
+                                    toolTip.SetToolTip(settingsButton, $"Apply {subDirName} settings to all games");
+                                }
 
                                 Icon exeIcon = null;
                                 try
@@ -227,12 +248,12 @@ namespace WDSSuperMenu
                                     Logger.LogToFile($"Failed to extract icon from {exePath}: {ex}");
                                 }
 
-                                var button = BuildButton(appName, exePath, exeIcon, (s, e) =>
+                                var button = BuildButton(appButtonLabel, exePath, exeIcon, (s, e) =>
                                     LaunchApplication((string)((Button)s).Tag));
                                 button.AutoSize = false;
                                 button.Size = new Size(maxButtonWidth, 30);
-                                buttons.Add((appName, button));
-                                Logger.LogToFile($"Created button '{appName}' with width: {button.Width}px");
+                                buttons.Add((appButtonLabel, button));
+                                Logger.LogToFile($"Created button '{appButtonLabel}' with width: {button.Width}px");
                             }
 
                             foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals"))

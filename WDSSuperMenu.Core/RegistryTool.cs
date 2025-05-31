@@ -14,17 +14,6 @@ namespace WDSSuperMenu.Core
             Version = version;
         }
     }
-
-    public class RegistryOptionsEntry
-    {
-        public string RegistryPath { get; set; }
-        public Dictionary<string, string> Options { get; set; } = new Dictionary<string, string>();
-        public RegistryOptionsEntry(string registryPath)
-        {
-            RegistryPath = registryPath;
-        }
-    }
-
     public static class RegistryTool
     {
         public static Dictionary<string, RegistryProductEntry> BuildRegistryIconCache()
@@ -71,64 +60,6 @@ namespace WDSSuperMenu.Core
                         catch (Exception ex)
                         {
                             Logger.LogToFile($"Failed to process registry subkey {productSubKeyName}: {ex}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogToFile($"Failed to build registry icon cache: {ex}");
-            }
-
-            return cache;
-        }
-
-        public static Dictionary<string, RegistryOptionsEntry> BuildRegistryOptionsCache()
-        {
-            var cache = new Dictionary<string, RegistryOptionsEntry>();
-            try
-            {
-                using (RegistryKey wdsKey = Registry.CurrentUser.OpenSubKey(@"Software\WDS LLC"))
-                {
-                    if (wdsKey == null)
-                    {
-                        Logger.LogToFile("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
-                        return cache;
-                    }
-
-                    foreach (string appName in wdsKey.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using (RegistryKey productKey = wdsKey.OpenSubKey(appName))
-                            {
-                                if (productKey == null)
-                                    continue;
-
-                                using (RegistryKey optionsKey = productKey.OpenSubKey("Options"))
-                                {
-                                    if (optionsKey == null)
-                                        continue;
-
-                                    var optionsEntry = new RegistryOptionsEntry(productKey.Name);
-                                    foreach (string optionsValueName in optionsKey.GetValueNames())
-                                    {
-                                        var optionValueData = optionsKey.GetValue(optionsValueName);
-                                        if (optionValueData != null && optionValueData is int intValue)
-                                        {
-                                            var valueHex = $"{intValue:X}";
-                                            optionsEntry.Options.Add(optionsValueName,valueHex);
-                                        }
-                                    }
-
-                                    cache.Add(appName, optionsEntry);
-
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogToFile($"Failed to process registry subkey {appName}: {ex}");
                         }
                     }
                 }
