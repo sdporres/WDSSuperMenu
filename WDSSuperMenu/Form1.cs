@@ -37,7 +37,7 @@ namespace WDSSuperMenu
                 // Update UI on UI thread
                 await Task.Run(() =>
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((System.Windows.Forms.MethodInvoker)delegate
                     {
                         registryIconCache = iconCacheTask.Result;
                         ScanForWDSFolders();
@@ -529,6 +529,26 @@ namespace WDSSuperMenu
             }
         }
 
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowAboutDialog();
+        }
+
+        private void ShowAboutDialog()
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var version = $"{assembly.GetName().Version.Major}.{assembly.GetName().Version.Minor}.{assembly.GetName().Version.Revision}"?? "1.0.0";
+            var productName = "WDS Super Menu";
+            var description ="A launcher for WDS game applications";
+            var copyright = "MIT License";
+
+            string aboutText = $"{productName}\n" +
+                              $"Version: {version}\n\n" +
+                              $"{description}\n\n" +
+                              $"{copyright}";
+
+            MessageBox.Show(aboutText, $"About {productName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
 
     }
 
