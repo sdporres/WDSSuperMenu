@@ -245,17 +245,6 @@ namespace WDSSuperMenu
                                     groupPanel.Controls.Add(matchingButton.Control);
                                     entriesAdded++;
                                 }
-                                else
-                                {
-                                    var placeholder = new Label
-                                    {
-                                        Size = new Size(maxButtonWidth, 30),
-                                        Margin = new Padding(4),
-                                        Text = ""
-                                    };
-                                    groupPanel.Controls.Add(placeholder);
-                                    Logger.LogToFile($"Added placeholder for '{desiredName}' with width: {maxButtonWidth}px");
-                                }
                             }
 
                             if (entriesAdded > 0)
