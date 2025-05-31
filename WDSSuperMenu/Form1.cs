@@ -392,6 +392,11 @@ namespace WDSSuperMenu
 
                 this.Width = Math.Min(maxGroupPanelWidth + 50, Screen.PrimaryScreen.WorkingArea.Width - 100);
                 this.Height = Math.Min(totalHeight + 100, Screen.PrimaryScreen.WorkingArea.Height - 100);
+
+                this.Location = new Point(
+                         (Screen.PrimaryScreen.WorkingArea.Width - this.Width) / 2,
+                         (Screen.PrimaryScreen.WorkingArea.Height - this.Height) / 2
+                     );
             }
             finally
             {
