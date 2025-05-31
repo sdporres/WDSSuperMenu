@@ -217,19 +217,51 @@ namespace WDSSuperMenu
                                     appNameCache.Add(appName);
                                     settingsButton.Click += (s, e) =>
                                     {
-                                        foreach (var targetAppName in appNameCache)
+                                        // Show confirmation dialog
+                                        DialogResult result = MessageBox.Show(
+                                            $"This will copy the settings from '{subDirName}' to all other games.\n\n" +
+                                            "This action cannot be undone. Are you sure you want to continue?",
+                                            "Confirm Applying Settings",
+                                            MessageBoxButtons.YesNo,
+                                            MessageBoxIcon.Question);
+
+                                        if (result == DialogResult.Yes)
                                         {
-                                            if(targetAppName.Equals(appName, StringComparison.OrdinalIgnoreCase))
-                                                continue; // Skip copying to itself
-                                            try
+                                            int successCount = 0;
+                                            int failureCount = 0;
+                                            var failedGames = new List<string>();
+
+                                            foreach (var targetAppName in appNameCache)
                                             {
-                                                RegistryReplacer.CopySettings(appName, targetAppName);
-                                                Logger.LogToFile($"Copied settings from {appName} to {targetAppName}");
+                                                if (targetAppName.Equals(appName, StringComparison.OrdinalIgnoreCase))
+                                                    continue; // Skip copying to itself
+                                                try
+                                                {
+                                                    RegistryReplacer.CopySettings(appName, targetAppName);
+                                                    Logger.LogToFile($"Copied settings from {appName} to {targetAppName}");
+                                                    successCount++;
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    Logger.LogToFile($"Failed to copy settings from {appName} to {targetAppName}: {ex}");
+                                                    failureCount++;
+                                                    failedGames.Add(targetAppName);
+                                                }
                                             }
-                                            catch (Exception ex)
+
+                                            // Show completion message
+                                            string message = $"Settings copy completed!\n\n" +
+                                                           $"Successful: {successCount}\n" +
+                                                           $"Failed: {failureCount}";
+
+                                            if (failedGames.Count > 0)
                                             {
-                                                Logger.LogToFile($"Failed to copy settings from {appName} to {targetAppName}: {ex}");
+                                                message += $"\n\nFailed games:\n{string.Join(", ", failedGames)}";
                                             }
+
+                                            MessageBox.Show(message, "Settings Copy Complete",
+                                                          MessageBoxButtons.OK,
+                                                          failureCount > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
                                         }
                                     };
 
