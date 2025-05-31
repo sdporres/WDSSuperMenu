@@ -4,21 +4,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WDSSuperMenu.Core;
 
 namespace WDSSuperMenu
 {
-    public class RegistryProductEntry
-    {
-        public string ProductName { get; set; }
-        public string ProductIcon { get; set; }
-        public string Version { get; set; }
-        public RegistryProductEntry(string productName, string productIcon, string version)
-        {
-            ProductName = productName;
-            ProductIcon = productIcon;
-            Version = version;
-        }
-    }
+
 
     public partial class Form1 : Form
     {
@@ -44,8 +34,8 @@ namespace WDSSuperMenu
                 Application.DoEvents(); // Ensure dialog is rendered
 
                 // Run heavy work in the background
-                var iconCacheTask = Task.Run(() => BuildRegistryIconCache());
-                var optionsCacheTask = Task.Run(() => BuildRegistryOptionsCache());
+                var iconCacheTask = Task.Run(() => RegistryTool.BuildRegistryIconCache());
+                var optionsCacheTask = Task.Run(() => RegistryTool.BuildRegistryOptionsCache());
 
                 await Task.WhenAll(iconCacheTask, optionsCacheTask);
 
@@ -95,125 +85,8 @@ namespace WDSSuperMenu
             }
         }
 
-        private Dictionary<string, RegistryProductEntry> BuildRegistryIconCache()
-        {
-            var cache = new Dictionary<string, RegistryProductEntry>();
-            try
-            {
-                using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
-                {
-                    if (productsKey == null)
-                    {
-                        LogToFile("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
-                        return cache;
-                    }
-
-                    foreach (string productSubKeyName in productsKey.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using (RegistryKey productKey = productsKey.OpenSubKey(productSubKeyName))
-                            {
-                                if (productKey == null)
-                                    continue;
-
-                                string productName = productKey.GetValue("ProductName")?.ToString();
-                                string productIcon = productKey.GetValue("ProductIcon")?.ToString();
-                                object productVersionObject = productKey.GetValue("Version");
-                                string productVersion = string.Empty;
-                                if (productVersionObject != null && productVersionObject is int intValue)
-                                {
-                                    var versionHex = $"{intValue:X}";
-                                    productVersion = ParseVersion(versionHex);
-                                }
-
-                                if (string.IsNullOrEmpty(productName) || string.IsNullOrEmpty(productIcon) ||
-                                    !File.Exists(productIcon) ||
-                                    !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
-                                    continue;
-
-                                cache[productName.ToLowerInvariant()] = new RegistryProductEntry(productName, productIcon, productVersion);
-                                LogToFile($"Cached icon for ProductName: {productName}, ProductIcon: {productIcon}");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogToFile($"Failed to process registry subkey {productSubKeyName}: {ex}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogToFile($"Failed to build registry icon cache: {ex}");
-            }
-
-            return cache;
-        }
-
-        private Dictionary<string, Dictionary<string, string>> BuildRegistryOptionsCache()
-        {
-            var cache = new Dictionary<string, Dictionary<string, string>>();
-            try
-            {
-                using (RegistryKey wdsKey = Registry.CurrentUser.OpenSubKey(@"Software\WDS LLC"))
-                {
-                    if (wdsKey == null)
-                    {
-                        LogToFile("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
-                        return cache;
-                    }
-
-                    foreach (string appName in wdsKey.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using (RegistryKey productKey = wdsKey.OpenSubKey(appName))
-                            {
-                                if (productKey == null)
-                                    continue;
-
-                                using (RegistryKey optionsKey = productKey.OpenSubKey("Options"))
-                                {
-                                    if (optionsKey == null)
-                                        continue;
-
-                                    cache.Add(appName, new Dictionary<string, string>());
-                                    foreach (string optionsValueName in optionsKey.GetValueNames())
-                                    {
-                                        var optionValueData = optionsKey.GetValue(optionsValueName);
-                                        if (optionValueData != null && optionValueData is int intValue)
-                                        {
-                                            var valueHex = $"{intValue:X}";
-                                            cache[appName][optionsValueName] = valueHex;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogToFile($"Failed to process registry subkey {appName}: {ex}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogToFile($"Failed to build registry icon cache: {ex}");
-            }
-
-            return cache;
-        }
-
-        public static string ParseVersion(string hexValue)
-        {
-            uint value = Convert.ToUInt32(hexValue, 16);
-            int major = (int)(value >> 24) & 0xFF;
-            int minor = (int)(value >> 16) & 0xFF;
-            int patch = (int)(value & 0xFFFF);
-            return $"{major}.{minor:D2}.{patch}";
-        }
+    
+  
 
         private void ScanForWDSFolders()
         {
@@ -243,10 +116,10 @@ namespace WDSSuperMenu
                 int totalWidth = textWidth + iconWidth + tempButton.Margin.Horizontal + tempButton.Padding.Horizontal + 10; // extra padding
 
                 maxButtonWidth = Math.Max(maxButtonWidth, Math.Max(totalWidth, tempButton.MinimumSize.Width));
-                LogToFile($"Calculated width for temp button '{buttonName}': {totalWidth}px");
+                Logger.LogToFile($"Calculated width for temp button '{buttonName}': {totalWidth}px");
                 tempButton.Dispose();
             }
-            LogToFile($"Maximum button width for EXE buttons: {maxButtonWidth}px");
+            Logger.LogToFile($"Maximum button width for EXE buttons: {maxButtonWidth}px");
 
             try
             {
@@ -285,16 +158,16 @@ namespace WDSSuperMenu
                                 try
                                 {
                                     pictureBox.Image = groupIcon.ToBitmap().GetThumbnailImage(iconSize, iconSize, null, IntPtr.Zero);
-                                    LogToFile($"Group icon for {Path.GetFileName(subdir)} set to {iconSize}x{iconSize}, native size: {groupIcon.Width}x{groupIcon.Height}");
+                                    Logger.LogToFile($"Group icon for {Path.GetFileName(subdir)} set to {iconSize}x{iconSize}, native size: {groupIcon.Width}x{groupIcon.Height}");
                                 }
                                 catch (Exception ex)
                                 {
-                                    LogToFile($"Failed to set group icon for {Path.GetFileName(subdir)}: {ex}");
+                                    Logger.LogToFile($"Failed to set group icon for {Path.GetFileName(subdir)}: {ex}");
                                 }
                             }
                             else
                             {
-                                LogToFile($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
+                                Logger.LogToFile($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
                             }
 
                             groupPanel.Controls.Add(pictureBox);
@@ -351,7 +224,7 @@ namespace WDSSuperMenu
                                 }
                                 catch (Exception ex)
                                 {
-                                    LogToFile($"Failed to extract icon from {exePath}: {ex}");
+                                    Logger.LogToFile($"Failed to extract icon from {exePath}: {ex}");
                                 }
 
                                 var button = BuildButton(appName, exePath, exeIcon, (s, e) =>
@@ -359,7 +232,7 @@ namespace WDSSuperMenu
                                 button.AutoSize = false;
                                 button.Size = new Size(maxButtonWidth, 30);
                                 buttons.Add((appName, button));
-                                LogToFile($"Created button '{appName}' with width: {button.Width}px");
+                                Logger.LogToFile($"Created button '{appName}' with width: {button.Width}px");
                             }
 
                             foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals"))
@@ -386,7 +259,7 @@ namespace WDSSuperMenu
                                         Text = ""
                                     };
                                     groupPanel.Controls.Add(placeholder);
-                                    LogToFile($"Added placeholder for '{desiredName}' with width: {maxButtonWidth}px");
+                                    Logger.LogToFile($"Added placeholder for '{desiredName}' with width: {maxButtonWidth}px");
                                 }
                             }
 
@@ -401,7 +274,7 @@ namespace WDSSuperMenu
                     }
                     catch (Exception ex)
                     {
-                        LogToFile($"Error processing subdirectory {parentDirectory}: {ex}");
+                        Logger.LogToFile($"Error processing subdirectory {parentDirectory}: {ex}");
                     }
                 }
 
@@ -419,7 +292,7 @@ namespace WDSSuperMenu
                                      totalMargins + 70; // Extra padding
 
                 this.Width = Math.Min(calculatedWidth, Screen.PrimaryScreen.WorkingArea.Width - 100);
-                LogToFile($"Calculated form width: {calculatedWidth}px, actual width: {this.Width}px");
+                Logger.LogToFile($"Calculated form width: {calculatedWidth}px, actual width: {this.Width}px");
 
                 this.Height = Math.Min(totalHeight + 100, Screen.PrimaryScreen.WorkingArea.Height - 100);
 
@@ -450,7 +323,7 @@ namespace WDSSuperMenu
             }
             catch (Exception ex)
             {
-                LogToFile($"Failed to retrieve version for {subdirName}: {ex}");
+                Logger.LogToFile($"Failed to retrieve version for {subdirName}: {ex}");
             }
             return null;
         }
@@ -471,7 +344,7 @@ namespace WDSSuperMenu
             }
             catch (Exception ex)
             {
-                LogToFile($"Failed to retrieve icon for {subdirName}: {ex}");
+                Logger.LogToFile($"Failed to retrieve icon for {subdirName}: {ex}");
             }
             return null;
         }
@@ -525,7 +398,7 @@ namespace WDSSuperMenu
                 }
                 catch (Exception ex)
                 {
-                    LogToFile($"Failed to set icon for button {text}: {ex}");
+                    Logger.LogToFile($"Failed to set icon for button {text}: {ex}");
                 }
             }
 
@@ -588,7 +461,7 @@ namespace WDSSuperMenu
                     if (process == null)
                     {
                         MessageBox.Show($"Failed to start process for {filePath}: No process was created.");
-                        LogToFile($"No process created for {filePath}");
+                        Logger.LogToFile($"No process created for {filePath}");
                         return;
                     }
 
@@ -596,7 +469,7 @@ namespace WDSSuperMenu
                     if (process.HasExited && process.ExitCode != 0)
                     {
                         MessageBox.Show($"Application {filePath} exited immediately with code {process.ExitCode}.");
-                        LogToFile($"Application {filePath} exited with code {process.ExitCode}");
+                        Logger.LogToFile($"Application {filePath} exited with code {process.ExitCode}");
                     }
                 }
             }
@@ -624,30 +497,18 @@ namespace WDSSuperMenu
                     catch (Exception exElevated)
                     {
                         MessageBox.Show($"Failed to launch {filePath} with elevation: {exElevated.Message}");
-                        LogToFile($"Elevation failed for {filePath}: {exElevated}");
+                        Logger.LogToFile($"Elevation failed for {filePath}: {exElevated}");
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to launch '{filePath}':\n{ex.Message}\nDetails: {ex}");
-                LogToFile($"Failed to launch {filePath}: {ex}");
+                Logger.LogToFile($"Failed to launch {filePath}: {ex}");
             }
         }
 
-        private static void LogToFile(string message)
-        {
-#if DEBUG
-            try
-            {
-                File.AppendAllText("debug.log", $"{DateTime.Now}: {message}\n");
-            }
-            catch
-            {
-                // Suppress logging errors
-            }
-#endif
-        }
+
     }
 
     public class ExeNameOrder
