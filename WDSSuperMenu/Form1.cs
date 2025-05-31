@@ -20,14 +20,29 @@ namespace WDSSuperMenu
 
     public partial class Form1 : Form
     {
-        private readonly Dictionary<string, RegistryProductEntry> registryIconCache;
-        private readonly Dictionary<string, Dictionary<string, string>> registryOptionsCache;
+        private Dictionary<string, RegistryProductEntry> registryIconCache;
+        private Dictionary<string, Dictionary<string, string>> registryOptionsCache;
         public Form1()
         {
             InitializeComponent();
-            registryIconCache = BuildRegistryIconCache();
-            registryOptionsCache = BuildRegistryOptionsCache();
-            ScanForWDSFolders();
+            LoadDataAsync();
+        }
+
+        private async void LoadDataAsync()
+        {
+            // Run heavy work in the background
+            var iconCacheTask = Task.Run(() => BuildRegistryIconCache());
+            var optionsCacheTask = Task.Run(() => BuildRegistryOptionsCache());
+
+            var iconCache = await iconCacheTask;
+            var optionsCache = await optionsCacheTask;
+
+            // Now update the UI (on UI thread)
+            this.Invoke((MethodInvoker)delegate {
+                registryIconCache = iconCache;
+                registryOptionsCache = optionsCache;
+                ScanForWDSFolders(); // This may also need to be async!
+            });
         }
 
         private Dictionary<string, RegistryProductEntry> BuildRegistryIconCache()
