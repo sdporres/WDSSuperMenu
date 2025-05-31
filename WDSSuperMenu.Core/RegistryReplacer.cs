@@ -7,15 +7,16 @@ namespace WDSSuperMenu.Core
         public static void CopySettings(string sourceApp, string targetApp)
         {
             using (RegistryKey sourceKey = Registry.CurrentUser.OpenSubKey($@"Software\WDS LLC\{sourceApp}\Options"))
-            using (RegistryKey targetKey = Registry.CurrentUser.OpenSubKey($@"Software\WDS LLC\{targetApp}\Options", true))
             {
-                if (sourceKey == null) throw new ArgumentException("Source application not found");
-                if (targetKey == null) throw new ArgumentException("Target application not found");
+                if (sourceKey == null)
+                    throw new ArgumentException("Source application not found");
 
-                foreach (string valueName in sourceKey.GetValueNames())
+                using (RegistryKey targetKey = Registry.CurrentUser.CreateSubKey($@"Software\WDS LLC\{targetApp}\Options"))
                 {
-                    // Only copy if target already has this value (your original logic)
-                    if (targetKey.GetValue(valueName) != null)
+                    if (targetKey == null)
+                        throw new InvalidOperationException("Failed to create or open target application key");
+
+                    foreach (string valueName in sourceKey.GetValueNames())
                     {
                         object sourceValue = sourceKey.GetValue(valueName);
                         RegistryValueKind valueType = sourceKey.GetValueKind(valueName);
