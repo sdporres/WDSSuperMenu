@@ -32,9 +32,8 @@
             this.AutoScroll = true; // allow scrolling if it's still too big
             this.StartPosition = FormStartPosition.CenterScreen;
             this.MinimumSize = new Size(600, 400);
-            this.AutoScroll = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
 
             this.flowLayoutPanel = new FlowLayoutPanel();
             this.SuspendLayout();

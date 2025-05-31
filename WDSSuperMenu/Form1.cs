@@ -38,7 +38,8 @@ namespace WDSSuperMenu
             var optionsCache = await optionsCacheTask;
 
             // Now update the UI (on UI thread)
-            this.Invoke((MethodInvoker)delegate {
+            this.Invoke((MethodInvoker)delegate
+            {
                 registryIconCache = iconCache;
                 registryOptionsCache = optionsCache;
                 ScanForWDSFolders(); // This may also need to be async!
@@ -212,8 +213,9 @@ namespace WDSSuperMenu
                             {
                                 FlowDirection = FlowDirection.LeftToRight,
                                 AutoSize = true,
+                                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                                 WrapContents = false,
-                                Margin = new Padding(20, 6, 6, 6)
+                                Margin = new Padding(12, 6, 6, 6)
                             };
 
                             // Add icon or placeholder and label to groupPanel
@@ -243,13 +245,24 @@ namespace WDSSuperMenu
 
                             groupPanel.Controls.Add(pictureBox);
 
+                            var settingsButton = new Button();
+                            settingsButton.Image = Properties.Resources.export_settings;
+                            settingsButton.Width = 30;
+                            settingsButton.Height = 30;
+                            settingsButton.Margin = new Padding(0, 4, 0, 0);
+                            settingsButton.TextImageRelation = TextImageRelation.Overlay;
+                            settingsButton.ImageAlign = ContentAlignment.MiddleCenter;
+                            groupPanel.Controls.Add(settingsButton);
+
                             var subDirName = Path.GetFileName(subdir);
                             var versionLabel = GetVersionFromRegistry(subDirName);
                             groupPanel.Controls.Add(new Label
                             {
                                 Text = $"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({GetVersionFromRegistry(subDirName)})")}",
                                 Width = 250,
-                                AutoSize = false,
+                                Height = 30,
+                                AutoSize = false,                              
+                                TextAlign = ContentAlignment.MiddleLeft,
                                 Margin = new Padding(3)
                             });
 
@@ -409,7 +422,7 @@ namespace WDSSuperMenu
             }
         }
 
-        private static Button BuildButton(string text, string tag, Icon icon, EventHandler onClick)
+        private static Button BuildButton(string text, string tag, object image, EventHandler onClick)
         {
             var button = new Button
             {
@@ -423,11 +436,19 @@ namespace WDSSuperMenu
                 ImageAlign = ContentAlignment.MiddleLeft
             };
 
-            if (icon != null)
+            if (image != null)
             {
                 try
                 {
-                    button.Image = icon.ToBitmap().GetThumbnailImage(16, 16, null, IntPtr.Zero);
+                    if (image is Icon icon)
+                        button.Image = icon.ToBitmap().GetThumbnailImage(16, 16, null, IntPtr.Zero);
+                    else if (image is string imagePath && File.Exists(imagePath))
+                        button.Image = Icon.ExtractAssociatedIcon(imagePath).ToBitmap().GetThumbnailImage(16, 16, null, IntPtr.Zero);
+                    else if (image is Bitmap bitmap)
+                        button.Image = bitmap;
+                    else if (image is Image img)
+                        button.Image = img;
+
                     int groupWidth = button.Image.Width + TextRenderer.MeasureText(button.Text, button.Font).Width;
                     int padding = ((button.Width - groupWidth) / 2) + 8;
                     button.Padding = new Padding(padding, 0, 0, 0);
