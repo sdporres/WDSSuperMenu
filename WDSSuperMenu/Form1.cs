@@ -1,7 +1,6 @@
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 
 namespace WDSSuperMenu
 {
@@ -34,14 +33,13 @@ namespace WDSSuperMenu
             var iconCacheTask = Task.Run(() => BuildRegistryIconCache());
             var optionsCacheTask = Task.Run(() => BuildRegistryOptionsCache());
 
-            var iconCache = await iconCacheTask;
-            var optionsCache = await optionsCacheTask;
+            Task.WaitAll(iconCacheTask, optionsCacheTask);
 
             // Now update the UI (on UI thread)
             this.Invoke((MethodInvoker)delegate
             {
-                registryIconCache = iconCache;
-                registryOptionsCache = optionsCache;
+                registryIconCache = iconCacheTask.Result;
+                registryOptionsCache = optionsCacheTask.Result;
                 ScanForWDSFolders(); // This may also need to be async!
             });
         }
