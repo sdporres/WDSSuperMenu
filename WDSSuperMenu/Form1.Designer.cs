@@ -51,17 +51,8 @@
             this.ClientSize = new System.Drawing.Size(600, 400);
             this.Text = "WDS Super Menu";
             this.ResumeLayout(false);
-
-            this.Resize += MainForm_Resize;
         }
 
-        private void MainForm_Resize(object sender, EventArgs e)
-        {
-            if (this.Width != 1100)
-            {
-                this.Width = 1100;
-            }
-        }
 
         #endregion
     }

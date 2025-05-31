@@ -224,12 +224,27 @@ namespace WDSSuperMenu
             int maxButtonWidth = 0;
             foreach (var buttonName in ExeNameMappings.OrderBy(x => x.Value.Order).Select(x => x.Value.Name))
             {
-                var tempButton = BuildButton(buttonName, "", GetDefaultIcon(), null);
-                tempButton.AutoSize = true;
-                tempButton.PerformLayout();
-                int width = tempButton.PreferredSize.Width;
-                maxButtonWidth = Math.Max(maxButtonWidth, width);
-                LogToFile($"Calculated width for temp button '{buttonName}': {width}px");
+                // Create a more accurate temporary button for measurement
+                var tempButton = new Button
+                {
+                    Text = buttonName,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    Margin = new Padding(4),
+                    MinimumSize = new Size(100, 30),
+                    TextImageRelation = TextImageRelation.ImageBeforeText,
+                    ImageAlign = ContentAlignment.MiddleLeft,
+                    Padding = new Padding(8, 0, 0, 0) // Account for padding
+                };
+
+                // Add space for icon if present
+                int textWidth = TextRenderer.MeasureText(buttonName, tempButton.Font).Width;
+                int iconWidth = 20; // 16px icon + padding
+                int totalWidth = textWidth + iconWidth + tempButton.Margin.Horizontal + tempButton.Padding.Horizontal + 10; // extra padding
+
+                maxButtonWidth = Math.Max(maxButtonWidth, Math.Max(totalWidth, tempButton.MinimumSize.Width));
+                LogToFile($"Calculated width for temp button '{buttonName}': {totalWidth}px");
+                tempButton.Dispose();
             }
             LogToFile($"Maximum button width for EXE buttons: {maxButtonWidth}px");
 
@@ -390,7 +405,22 @@ namespace WDSSuperMenu
                     }
                 }
 
-                this.Width = Math.Min(maxGroupPanelWidth + 50, Screen.PrimaryScreen.WorkingArea.Width - 100);
+                // Calculate the total width more accurately
+                int iconWidth = 64; // PictureBox width
+                int settingsButtonWidth = 30; // Settings button width
+                int labelWidth = 250; // Label width
+                int savesManualButtonWidth = 80; // Approximate width for "Saves"/"Manuals" buttons
+                int buttonCount = ExeNameMappings.Count; // Number of exe buttons
+                int totalMargins = 12 + 8 + 3 + 4 + (buttonCount * 8); // All margins combined
+
+                int calculatedWidth = iconWidth + settingsButtonWidth + labelWidth +
+                                     (2 * savesManualButtonWidth) + // Max 2 saves/manual buttons
+                                     (buttonCount * maxButtonWidth) +
+                                     totalMargins + 70; // Extra padding
+
+                this.Width = Math.Min(calculatedWidth, Screen.PrimaryScreen.WorkingArea.Width - 100);
+                LogToFile($"Calculated form width: {calculatedWidth}px, actual width: {this.Width}px");
+
                 this.Height = Math.Min(totalHeight + 100, Screen.PrimaryScreen.WorkingArea.Height - 100);
 
                 this.Location = new Point(
@@ -485,9 +515,13 @@ namespace WDSSuperMenu
                     else if (image is Image img)
                         button.Image = img;
 
-                    int groupWidth = button.Image.Width + TextRenderer.MeasureText(button.Text, button.Font).Width;
-                    int padding = ((button.Width - groupWidth) / 2) + 8;
-                    button.Padding = new Padding(padding, 0, 0, 0);
+                    int imageWidth = button.Image?.Width ?? 0;
+                    int textWidth = TextRenderer.MeasureText(button.Text, button.Font).Width;
+                    int availableWidth = button.Width - button.Margin.Horizontal;
+                    int contentWidth = imageWidth + textWidth + 4; // 4px spacing between image and text
+                    int leftPadding = Math.Max(8, (availableWidth - contentWidth) / 2);
+
+                    button.Padding = new Padding(leftPadding, 0, 8, 0);
                 }
                 catch (Exception ex)
                 {
