@@ -5,32 +5,34 @@ using System.Linq;
 
 namespace WDSSuperMenu
 {
-    public class RegistryEntry
+    public class RegistryProductEntry
     {
         public string ProductName { get; set; }
         public string ProductIcon { get; set; }
         public string Version { get; set; }
-        public RegistryEntry(string productName, string productIcon, string version)
+        public RegistryProductEntry(string productName, string productIcon, string version)
         {
             ProductName = productName;
             ProductIcon = productIcon;
             Version = version;
         }
     }
+
     public partial class Form1 : Form
     {
-        private int pictureBoxSize = 32;
-        private readonly Dictionary<string, RegistryEntry> registryIconCache;
+        private readonly Dictionary<string, RegistryProductEntry> registryIconCache;
+        private readonly Dictionary<string, Dictionary<string, string>> registryOptionsCache;
         public Form1()
         {
             InitializeComponent();
             registryIconCache = BuildRegistryIconCache();
+            registryOptionsCache = BuildRegistryOptionsCache();
             ScanForWDSFolders();
         }
 
-        private Dictionary<string, RegistryEntry> BuildRegistryIconCache()
+        private Dictionary<string, RegistryProductEntry> BuildRegistryIconCache()
         {
-            var cache = new Dictionary<string, RegistryEntry>();
+            var cache = new Dictionary<string, RegistryProductEntry>();
             try
             {
                 using (RegistryKey productsKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Products"))
@@ -65,7 +67,7 @@ namespace WDSSuperMenu
                                     !string.Equals(Path.GetExtension(productIcon), ".exe", StringComparison.OrdinalIgnoreCase))
                                     continue;
 
-                                cache[productName.ToLowerInvariant()] = new RegistryEntry(productName, productIcon, productVersion);
+                                cache[productName.ToLowerInvariant()] = new RegistryProductEntry(productName, productIcon, productVersion);
                                 LogToFile($"Cached icon for ProductName: {productName}, ProductIcon: {productIcon}");
                             }
                         }
@@ -80,6 +82,63 @@ namespace WDSSuperMenu
             {
                 LogToFile($"Failed to build registry icon cache: {ex}");
             }
+
+            return cache;
+        }
+
+        private Dictionary<string, Dictionary<string, string>> BuildRegistryOptionsCache()
+        {
+            var cache = new Dictionary<string, Dictionary<string, string>>();
+            try
+            {
+                using (RegistryKey wdsKey = Registry.CurrentUser.OpenSubKey(@"Software\WDS LLC"))
+                {
+                    if (wdsKey == null)
+                    {
+                        LogToFile("Failed to open registry key HKLM\\SOFTWARE\\Classes\\Installer\\Products");
+                        return cache;
+                    }
+
+                    foreach (string appName in wdsKey.GetSubKeyNames())
+                    {
+                        try
+                        {
+                            using (RegistryKey productKey = wdsKey.OpenSubKey(appName))
+                            {
+                                if (productKey == null)
+                                    continue;
+
+                                using (RegistryKey optionsKey = productKey.OpenSubKey("Options"))
+                                {
+                                    if (optionsKey == null)
+                                        continue;
+
+                                    cache.Add(appName, new Dictionary<string, string>());
+                                    foreach (string optionsValueName in optionsKey.GetValueNames())
+                                    {
+                                        var optionValueData = optionsKey.GetValue(optionsValueName);
+                                        if (optionValueData != null && optionValueData is int intValue)
+                                        {
+                                            var valueHex = $"{intValue:X}";
+                                            cache[appName][optionsValueName] = valueHex;
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogToFile($"Failed to process registry subkey {appName}: {ex}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToFile($"Failed to build registry icon cache: {ex}");
+            }
+
             return cache;
         }
 
@@ -99,7 +158,6 @@ namespace WDSSuperMenu
 
         private void ScanForWDSFolders()
         {
-            string folderName = "WDS";
             flowLayoutPanel.SuspendLayout();
             int maxGroupPanelWidth = 0;
             int totalHeight = 0;
@@ -119,12 +177,12 @@ namespace WDSSuperMenu
 
             try
             {
-                var werwe = RegistryAppFinder.FindUniqueParentDirectories();
-                foreach (var rootTHings in werwe)
+                var parentDirectories = RegistryAppFinder.FindUniqueParentDirectories();
+                foreach (var parentDirectory in parentDirectories)
                 {
                     try
                     {
-                        string[] subdirectories = Directory.GetDirectories(rootTHings);
+                        string[] subdirectories = Directory.GetDirectories(parentDirectory);
                         foreach (string subdir in subdirectories)
                         {
                             string savesPath = Path.Combine(subdir, "saves");
@@ -267,7 +325,7 @@ namespace WDSSuperMenu
                     }
                     catch (Exception ex)
                     {
-                        LogToFile($"Error processing subdirectory {rootTHings}: {ex}");
+                        LogToFile($"Error processing subdirectory {parentDirectory}: {ex}");
                     }
                 }
 
