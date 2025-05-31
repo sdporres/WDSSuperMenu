@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113 d17.12
+VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu", "WDSSuperMenu\WDSSuperMenu.csproj", "{4DA2AF6B-66C1-481F-9747-718A9AE59FAB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu.Console", "WDSSuperMenu.Console\WDSSuperMenu.Console.csproj", "{5D63CE8E-1BE5-43F0-9B8E-67B76C30ADC5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu.Core", "WDSSuperMenu.Core\WDSSuperMenu.Core.csproj", "{1D60F803-381D-46DC-AB36-04BC5E914246}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "WDS Super Menu Installer", "WDS Super Menu Installer\WDS Super Menu Installer.vdproj", "{5D24BEDF-32D7-411E-A581-B8D0651AD4B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,8 @@ Global
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D24BEDF-32D7-411E-A581-B8D0651AD4B2}.Debug|Any CPU.ActiveCfg = Debug
+		{5D24BEDF-32D7-411E-A581-B8D0651AD4B2}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

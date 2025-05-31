@@ -3,10 +3,10 @@ name: Generate Release from tag
 on:
   push:
     tags:
-      - 'v*'  # Triggers on tags like v1.0.0
+      - 'v*'
 
 permissions:
-  contents: write  # Required to create or update releases
+  contents: write
 
 jobs:
   build-and-release:
@@ -30,15 +30,20 @@ jobs:
       - name: Publish specific project
         run: dotnet publish WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-build --output ./publish
 
-      - name: Zip published output
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./WDSSuperMenu-${{ github.ref_name }}.zip
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
 
-      - name: Create or Update GitHub Release
+      - name: Compile Inno Setup script
+        run: |
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' installer.iss
+
+      - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body_path: .github/release-notes.md
-          files: WDSSuperMenu-${{ github.ref_name }}.zip
+          files: output/WDSSuperMenuInstaller.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
