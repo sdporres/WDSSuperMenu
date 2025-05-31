@@ -8,10 +8,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>WDS Super Menu</AssemblyName>
     <ApplicationIcon>image.ico</ApplicationIcon>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="image.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
