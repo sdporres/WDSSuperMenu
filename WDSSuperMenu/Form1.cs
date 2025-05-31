@@ -58,30 +58,6 @@ namespace WDSSuperMenu
             }
         }
 
-        private class LoadingDialog : Form
-        {
-            public LoadingDialog()
-            {
-                Text = "Loading";
-                Size = new Size(200, 100);
-                StartPosition = FormStartPosition.CenterScreen;
-                FormBorderStyle = FormBorderStyle.FixedDialog;
-                ControlBox = false;
-                ShowInTaskbar = false;
-
-                var label = new Label
-                {
-                    Text = "Loading, please wait...",
-                    AutoSize = true,
-                    Location = new Point(20, 30)
-                };
-                Controls.Add(label);
-            }
-        }
-
-    
-  
-
         private void ScanForWDSFolders()
         {
             flowLayoutPanel.SuspendLayout();
@@ -169,8 +145,8 @@ namespace WDSSuperMenu
                             var settingsButton = new Button
                             {
                                 Image = Properties.Resources.export_settings,
-                                Width = 30,
-                                Height = 30,
+                                Width = 32,
+                                Height = 32,
                                 Margin = new Padding(0, 4, 0, 0),
                                 TextImageRelation = TextImageRelation.Overlay,
                                 ImageAlign = ContentAlignment.MiddleCenter
@@ -184,7 +160,7 @@ namespace WDSSuperMenu
                             {
                                 Text = $"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({versionLabel})")}",
                                 Width = 250,
-                                Height = 30,
+                                Height = 32,
                                 AutoSize = false,
                                 TextAlign = ContentAlignment.MiddleLeft,
                                 Margin = new Padding(3)
@@ -194,13 +170,13 @@ namespace WDSSuperMenu
 
                             if (Directory.Exists(savesPath))
                             {
-                                buttons.Add(("Saves", BuildButton("> Saves", savesPath, null, (s, e) =>
+                                buttons.Add(("Saves", BuildButton("Saves", savesPath, Properties.Resources.icons8_folder_64, (s, e) =>
                                     Process.Start("explorer.exe", (string)((Button)s).Tag))));
                             }
 
                             if (Directory.Exists(manualsPath))
                             {
-                                buttons.Add(("Manuals", BuildButton("> Manuals", manualsPath, null, (s, e) =>
+                                buttons.Add(("Manuals", BuildButton("Manuals", manualsPath, Properties.Resources.icons8_pdf_64, (s, e) =>
                                     Process.Start("explorer.exe", (string)((Button)s).Tag))));
                             }
 
@@ -227,45 +203,12 @@ namespace WDSSuperMenu
 
                                         if (result == DialogResult.Yes)
                                         {
-                                            int successCount = 0;
-                                            int failureCount = 0;
-                                            var failedGames = new List<string>();
-
-                                            foreach (var targetAppName in appNameCache)
-                                            {
-                                                if (targetAppName.Equals(appName, StringComparison.OrdinalIgnoreCase))
-                                                    continue; // Skip copying to itself
-                                                try
-                                                {
-                                                    RegistryReplacer.CopySettings(appName, targetAppName);
-                                                    Logger.LogToFile($"Copied settings from {appName} to {targetAppName}");
-                                                    successCount++;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    Logger.LogToFile($"Failed to copy settings from {appName} to {targetAppName}: {ex}");
-                                                    failureCount++;
-                                                    failedGames.Add(targetAppName);
-                                                }
-                                            }
-
-                                            // Show completion message
-                                            string message = $"Settings copy completed!\n\n" +
-                                                           $"Successful: {successCount}\n" +
-                                                           $"Failed: {failureCount}";
-
-                                            if (failedGames.Count > 0)
-                                            {
-                                                message += $"\n\nFailed games:\n{string.Join(", ", failedGames)}";
-                                            }
-
-                                            MessageBox.Show(message, "Settings Copy Complete",
-                                                          MessageBoxButtons.OK,
-                                                          failureCount > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+                                            //Task.Run(() => 
+                                            CopySettingsAsync(appName, subDirName);//);
                                         }
                                     };
 
-                                    var toolTip = new System.Windows.Forms.ToolTip();
+                                    var toolTip = new ToolTip();
                                     toolTip.SetToolTip(settingsButton, $"Apply {subDirName} settings to all games");
                                 }
 
@@ -293,8 +236,7 @@ namespace WDSSuperMenu
                                 groupPanel.Controls.Add(button.Control);
                             }
 
-                            int entriesAdded = buttons.Count(b => b.Name == "Saves" || b.Name == "Manuals");
-
+                            int entriesAdded = 0;
                             foreach (var desiredName in ExeNameMappings.OrderBy(x => x.Value.Order).Select(x => x.Value.Name))
                             {
                                 var matchingButton = buttons.FirstOrDefault(b => b.Name == desiredName);
@@ -423,7 +365,7 @@ namespace WDSSuperMenu
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Margin = new Padding(4),
-                MinimumSize = new Size(100, 30),
+                MinimumSize = new Size(100, 32),
                 TextImageRelation = TextImageRelation.ImageBeforeText,
                 ImageAlign = ContentAlignment.MiddleLeft
             };
@@ -569,9 +511,9 @@ namespace WDSSuperMenu
         private void ShowAboutDialog()
         {
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var version = $"{assembly.GetName().Version.Major}.{assembly.GetName().Version.Minor}.{assembly.GetName().Version.Revision}"?? "1.0.0";
+            var version = $"{assembly.GetName().Version.Major}.{assembly.GetName().Version.Minor}.{assembly.GetName().Version.Revision}" ?? "1.0.0";
             var productName = "WDS Super Menu";
-            var description ="A launcher for WDS game applications";
+            var description = "A launcher for WDS game applications";
             var copyright = "MIT License";
 
             string aboutText = $"{productName}\n" +
@@ -580,6 +522,85 @@ namespace WDSSuperMenu
                               $"{copyright}";
 
             MessageBox.Show(aboutText, $"About {productName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private async Task CopySettingsAsync(string sourceAppName, string sourceDisplayName)
+        {
+            using (var progressDialog = new SettingsProgressDialog())
+            {
+                progressDialog.Show(this);
+                Application.DoEvents();
+
+                try
+                {
+                    // Run the settings copy operation in the background
+                    var result = await Task.Run(() =>
+                    {
+                        int successCount = 0;
+                        int failureCount = 0;
+                        var failedGames = new List<string>();
+                        int totalGames = appNameCache.Count - 1; // Exclude source game
+                        int currentGame = 0;
+
+                        foreach (var targetAppName in appNameCache)
+                        {
+                            if (targetAppName.Equals(sourceAppName, StringComparison.OrdinalIgnoreCase))
+                                continue; // Skip copying to itself
+
+                            currentGame++;
+
+                            // Update progress on UI thread
+                            this.Invoke((MethodInvoker)delegate
+                            {
+                                progressDialog.UpdateProgress(targetAppName, currentGame, totalGames);
+                            });
+
+                            try
+                            {
+                                RegistryReplacer.CopySettings(sourceAppName, targetAppName);
+                                Logger.LogToFile($"Copied settings from {sourceAppName} to {targetAppName}");
+                                successCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogToFile($"Failed to copy settings from {sourceAppName} to {targetAppName}: {ex}");
+                                failureCount++;
+                                failedGames.Add(targetAppName);
+                            }
+
+                            // Small delay to make progress visible
+                            Thread.Sleep(100);
+                        }
+
+                        return new { SuccessCount = successCount, FailureCount = failureCount, FailedGames = failedGames };
+                    });
+
+                    // Show completion message on UI thread
+                    string message = $"Settings copy completed!\n\n" +
+                                   $"Source: {sourceDisplayName}\n" +
+                                   $"Successful: {result.SuccessCount}\n" +
+                                   $"Failed: {result.FailureCount}";
+
+                    if (result.FailedGames.Count > 0)
+                    {
+                        message += $"\n\nFailed games:\n{string.Join(", ", result.FailedGames)}";
+                    }
+
+                    MessageBox.Show(this, message, "Settings Copy Complete",
+                                  MessageBoxButtons.OK,
+                                  result.FailureCount > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogToFile($"Unexpected error during settings copy: {ex}");
+                    MessageBox.Show(this, $"An unexpected error occurred during settings copy:\n{ex.Message}",
+                                  "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    progressDialog.Close();
+                }
+            }
         }
 
     }
