@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu.Console", "WDS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu.Core", "WDSSuperMenu.Core\WDSSuperMenu.Core.csproj", "{1D60F803-381D-46DC-AB36-04BC5E914246}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "WDS Super Menu Installer", "WDS Super Menu Installer\WDS Super Menu Installer.vdproj", "{5D24BEDF-32D7-411E-A581-B8D0651AD4B2}"
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "WDSSuperMenu.Installer", "WDSSuperMenu.Installer\WDSSuperMenu.Installer.vdproj", "{BB894E64-CCA6-4F3A-A6AA-29A584B225F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,15 +22,14 @@ Global
 		{4DA2AF6B-66C1-481F-9747-718A9AE59FAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DA2AF6B-66C1-481F-9747-718A9AE59FAB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5D63CE8E-1BE5-43F0-9B8E-67B76C30ADC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5D63CE8E-1BE5-43F0-9B8E-67B76C30ADC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D63CE8E-1BE5-43F0-9B8E-67B76C30ADC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D63CE8E-1BE5-43F0-9B8E-67B76C30ADC5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5D24BEDF-32D7-411E-A581-B8D0651AD4B2}.Debug|Any CPU.ActiveCfg = Debug
-		{5D24BEDF-32D7-411E-A581-B8D0651AD4B2}.Release|Any CPU.ActiveCfg = Release
+		{BB894E64-CCA6-4F3A-A6AA-29A584B225F5}.Debug|Any CPU.ActiveCfg = Debug
+		{BB894E64-CCA6-4F3A-A6AA-29A584B225F5}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
