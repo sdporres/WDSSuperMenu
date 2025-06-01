@@ -1,14 +1,27 @@
+#ifndef AppVersion
+  #define AppVersion "0.0.0"
+#endif
+
+#define MyAppVersion AppVersion
+
 [Setup]
-AppName=WDSSuperMenu
-AppVersion=1.0
+AppName=WDS Super Menu
+AppVersion={#MyAppVersion}
 DefaultDirName={pf}\WDSSuperMenu
 OutputDir=output
-OutputBaseFilename=WDSSuperMenuInstaller
+OutputBaseFilename=WDSSuperMenu-{#MyAppVersion}-Installer
 Compression=lzma
 SolidCompression=yes
+SetupIconFile=installer.ico
+
 
 [Files]
 Source: "publish\*"; DestDir: "{app}"; Flags: recursesubdirs
 
 [Icons]
-Name: "{group}\WDSSuperMenu"; Filename: "{app}\WDSSuperMenu.exe"
+; Start Menu shortcut
+Name: "{group}\WDS Super Menu"; Filename: "{app}\WDSSuperMenu.exe"
+
+; Desktop shortcut
+Name: "{commondesktop}\WDS Super Menu"; Filename: "{app}\WDSSuperMenu.exe"
+

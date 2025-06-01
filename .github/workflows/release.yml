@@ -23,6 +23,12 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore WDSSuperMenu/WDSSuperMenu.csproj
+        
+      - name: Set up Git tag version
+        id: version
+        run: |
+            $version = $env:GITHUB_REF.Replace("refs/tags/v", "")
+            Write-Output "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build specific project
         run: dotnet build WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-restore
@@ -31,7 +37,7 @@ jobs:
         run: dotnet publish WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-build --output ./publish
 
       - name: Zip the publish folder
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./WDSSuperMenu-${{ github.ref_name }}-Portable.zip
+        run: Compress-Archive -Path ./publish/* -DestinationPath ./WDSSuperMenu-${{ env.VERSION }}-Portable.zip
 
       - name: Install Inno Setup
         run: |
@@ -39,7 +45,9 @@ jobs:
 
       - name: Compile Inno Setup script
         run: |
-          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' installer.iss
+            & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "/DAppVersion=${{ env.VERSION }}" installer.iss
+
+
 
       - name: Upload Installer and ZIP to Release
         uses: softprops/action-gh-release@v2
@@ -48,7 +56,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body_path: .github/release-notes.md
           files: |
-            output/WDSSuperMenuInstaller.exe
-            ./WDSSuperMenu-${{ github.ref_name }}-Portable.zip
+            output/WDSSuperMenu-${{ env.VERSION }}-Installer.exe
+            ./WDSSuperMenu-${{ env.VERSION }}-Portable.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

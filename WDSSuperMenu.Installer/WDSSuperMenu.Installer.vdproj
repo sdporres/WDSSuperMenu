@@ -132,28 +132,6 @@
         }
         "Folder"
         {
-            "{1525181F-901A-416C-8A58-119130FE478E}:_47DCE76017FE42CABE108FAACA9A0E41"
-            {
-            "Name" = "8:#1919"
-            "AlwaysCreate" = "11:FALSE"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Property" = "8:ProgramMenuFolder"
-                "Folders"
-                {
-                    "{9EF0B969-E518-4E46-987F-47570745A589}:_80F7BCE51CBF44FDA6C3F052CF72676B"
-                    {
-                    "Name" = "8:WDS Super Menu"
-                    "AlwaysCreate" = "11:FALSE"
-                    "Condition" = "8:"
-                    "Transitive" = "11:FALSE"
-                    "Property" = "8:_296A8596630A4E929B20D1B4D3F1C03D"
-                        "Folders"
-                        {
-                        }
-                    }
-                }
-            }
             "{1525181F-901A-416C-8A58-119130FE478E}:_C8778C77BBAE42149CDA840D96192B0E"
             {
             "Name" = "8:#1916"
@@ -194,7 +172,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:WDSSuperMenu"
         "ProductCode" = "8:{5AD93AE5-492B-49FD-B357-DDC4356F3E5E}"
-        "PackageCode" = "8:{F568BD24-A4D6-45A4-ACB3-229DF92C8585}"
+        "PackageCode" = "8:{CC4141B9-5883-442F-9ABE-5C48F2D95C1A}"
         "UpgradeCode" = "8:{CC579F92-9E1F-4D2C-8170-EC311C8D711A}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
@@ -314,20 +292,6 @@
         }
         "Shortcut"
         {
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_642ED0D4CB9443D8B0ABC2E540361EC9"
-            {
-            "Name" = "8:WDS Super Menu"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_361AD615CB354C2790992561BF932646"
-            "Folder" = "8:_C8778C77BBAE42149CDA840D96192B0E"
-            "WorkingFolder" = "8:_D21AE085AD0442C18A20939038487ADA"
-            "Icon" = "8:_A5EDCA02122E4F5FA743F6B8A66A7427"
-            "Feature" = "8:"
-            }
         }
         "UserInterface"
         {
