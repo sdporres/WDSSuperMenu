@@ -849,7 +849,7 @@ namespace WDSSuperMenu
         private void ShowAboutDialog()
         {
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var version = $"{assembly.GetName().Version.Major}.{assembly.GetName().Version.Minor}.{assembly.GetName().Version.Revision}" ?? "1.0.0";
+            var version = UpdateChecker.GetCurrentVersion();
             var productName = "WDS Super Menu";
             var description = "A launcher for WDS game applications";
             var copyright = "MIT License";

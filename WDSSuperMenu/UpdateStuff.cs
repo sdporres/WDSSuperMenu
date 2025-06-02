@@ -44,7 +44,7 @@ namespace WDSSuperMenu
                     return new UpdateInfo { IsUpdateAvailable = false };
                 }
 
-                var currentVersion = GetCurrentVersion();
+                var currentVersion = ParseVersion(GetCurrentVersion());
                 var latestVersion = ParseVersion(release.tag_name);
 
                 bool isUpdateAvailable = IsNewerVersion(latestVersion, currentVersion);
@@ -67,10 +67,11 @@ namespace WDSSuperMenu
             }
         }
 
-        private static Version GetCurrentVersion()
+        public static string GetCurrentVersion()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            return assembly.GetName().Version ?? new Version(1, 0, 0, 0);
+            var version = $"{assembly.GetName().Version.Major}.{assembly.GetName().Version.Minor}.{assembly.GetName().Version.Build}" ?? "1.0.0";
+            return version;
         }
 
         private static Version ParseVersion(string versionString)
