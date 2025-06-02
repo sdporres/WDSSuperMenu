@@ -8,6 +8,7 @@
 AppName=WDS Super Menu
 AppVersion={#MyAppVersion}
 DefaultDirName={pf}\WDSSuperMenu
+DefaultGroupName=WDS Super Menu
 OutputDir=output
 OutputBaseFilename=WDSSuperMenu-{#MyAppVersion}-Installer
 Compression=lzma
