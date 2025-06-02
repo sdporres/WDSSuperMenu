@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu.Console", "WDS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WDSSuperMenu.Core", "WDSSuperMenu.Core\WDSSuperMenu.Core.csproj", "{1D60F803-381D-46DC-AB36-04BC5E914246}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "WDSSuperMenu.Installer", "WDSSuperMenu.Installer\WDSSuperMenu.Installer.vdproj", "{BB894E64-CCA6-4F3A-A6AA-29A584B225F5}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,8 +26,6 @@ Global
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D60F803-381D-46DC-AB36-04BC5E914246}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BB894E64-CCA6-4F3A-A6AA-29A584B225F5}.Debug|Any CPU.ActiveCfg = Debug
-		{BB894E64-CCA6-4F3A-A6AA-29A584B225F5}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
