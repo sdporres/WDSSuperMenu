@@ -28,17 +28,19 @@ jobs:
         id: version
         run: |
             $version = $env:GITHUB_REF.Replace("refs/tags/v", "")
-            $version = "v$version"
+            $versionWithV = "v$version"
             Write-Output "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            Write-Output "VERSION_WITH_V=v$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
 
       - name: Build specific project
-        run: dotnet build WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-restore
+        run: dotnet build WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-restore -p:Version=${{ env.VERSION }}
 
       - name: Publish specific project
         run: dotnet publish WDSSuperMenu/WDSSuperMenu.csproj --configuration Release --no-build --output ./publish
 
       - name: Zip the publish folder
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./WDSSuperMenu-${{ env.VERSION }}-Portable.zip
+        run: Compress-Archive -Path ./publish/* -DestinationPath ./WDSSuperMenu-${{ env.VERSION_WITH_V }}-Portable.zip
 
       - name: Install Inno Setup
         run: |
@@ -46,7 +48,7 @@ jobs:
 
       - name: Compile Inno Setup script
         run: |
-            & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "/DAppVersion=${{ env.VERSION }}" installer.iss
+            & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "/DAppVersion=${{ env.VERSION_WITH_V }}" installer.iss
 
 
 
@@ -57,7 +59,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body_path: .github/release-notes.md
           files: |
-            output/WDSSuperMenu-${{ env.VERSION }}-Installer.exe
-            ./WDSSuperMenu-${{ env.VERSION }}-Portable.zip
+            output/WDSSuperMenu-${{ env.VERSION_WITH_V }}-Installer.exe
+            ./WDSSuperMenu-${{ env.VERSION_WITH_V }}-Portable.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
