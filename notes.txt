@@ -3,4 +3,3 @@ Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\
 
 WDS options
 Computer\HKEY_USERS\S-1-5-21-2003196712-2746918126-332173211-1001\Software\WDS LLC\{APPLICATION NAME}\Options
-

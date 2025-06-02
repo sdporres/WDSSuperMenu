@@ -9,6 +9,8 @@
         private MenuStrip menuStrip;
         private ToolStripMenuItem helpToolStripMenuItem;
         private ToolStripMenuItem aboutToolStripMenuItem;
+        private TabControl tabControl;
+        private Dictionary<string, FlowLayoutPanel> seriesTabPanels = new Dictionary<string, FlowLayoutPanel>();
 
         /// <summary>
         ///  Clean up any resources being used.
@@ -26,6 +28,10 @@
                 {
                     menuStrip.Dispose();
                 }
+                if (tabControl != null)
+                {
+                    tabControl.Dispose();
+                }
             }
             base.Dispose(disposing);
         }
@@ -42,6 +48,7 @@
             this.helpToolStripMenuItem = new ToolStripMenuItem();
             this.aboutToolStripMenuItem = new ToolStripMenuItem();
             this.flowLayoutPanel = new FlowLayoutPanel();
+            this.tabControl = new TabControl();
 
             this.menuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -74,6 +81,13 @@
             this.aboutToolStripMenuItem.Text = "&About";
             this.aboutToolStripMenuItem.Click += new EventHandler(this.aboutToolStripMenuItem_Click);
 
+            // 
+            // tabControl
+            // 
+            this.tabControl.Dock = DockStyle.Fill;
+            this.tabControl.Name = "tabControl";
+            this.tabControl.TabIndex = 1;
+
             // Form settings
             this.AutoSize = false; // we're setting size manually now
             this.AutoScroll = true; // allow scrolling if it's still too big
@@ -91,9 +105,11 @@
             this.flowLayoutPanel.FlowDirection = FlowDirection.TopDown;
             this.flowLayoutPanel.WrapContents = false;
 
-            // Add controls to form
+            // Add controls to form - TabControl will be added in InitializeTabControl()
+            // Note: flowLayoutPanel is kept for backward compatibility but removed in InitializeTabControl()
             this.Controls.Add(this.flowLayoutPanel);
             this.Controls.Add(this.menuStrip);
+            // Don't add tabControl here - it's added in InitializeTabControl()
 
             // 
             // MainForm

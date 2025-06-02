@@ -1,8 +1,7 @@
 # New
 
-- Added button to apply settings from one game to all others
+- Games are now categorized into tabs according to their series
 
 # Changed
 
-- Performance improvements when launching
-- Added icons for "Saves" and "Manuals" buttons
+- The "Apply Settings" button only applies to games in the same series

@@ -1,13 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WDSSuperMenu.Core
+﻿namespace WDSSuperMenu.Core
 {
     public static class SeriesCatalog
     {
+        public static string FindSeriesForGame(string gameTitle)
+        {
+            foreach (var series in SeriesTitles)
+            {
+                if (series.Value.Any(title => gameTitle.Contains(title, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return series.Key;
+                }
+            }
+            return null; // Game not found in any series
+        }
+
         public static Dictionary<string, List<string>> SeriesTitles { get; } = new Dictionary<string, List<string>>()
         {
             ["Panzer Campaigns"] = new List<string>
@@ -62,8 +68,8 @@ namespace WDSSuperMenu.Core
                 "Campaign Austerlitz",
                 "Campaign Bautzen",
                 "Campaign Eckmuhl",
-                "Campaign Eylau-Friedland",
-                "Campaign Jena-Auerstedt",
+                "Campaign Eylau",
+                "Campaign Jena",
                 "Campaign Leipzig",
                 "Campaign Marengo",
                 "Campaign Wagram",

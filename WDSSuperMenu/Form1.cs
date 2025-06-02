@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Windows.Forms;
 using WDSSuperMenu.Core;
 
 namespace WDSSuperMenu
@@ -9,7 +10,7 @@ namespace WDSSuperMenu
     public partial class Form1 : Form
     {
         private Dictionary<string, RegistryProductEntry> registryIconCache;
-        private List<string> appNameCache = new List<string>();
+        private Dictionary<string, string> appNameCache = new Dictionary<string, string>();
 
         public Form1()
         {
@@ -18,7 +19,82 @@ namespace WDSSuperMenu
             Opacity = 0;
             Visible = false;
             SuspendLayout();
+
+            InitializeTabControl();
+
             LoadDataAsync();
+        }
+
+        private void InitializeTabControl()
+        {
+            // Create the TabControl if it doesn't exist
+            if (tabControl == null)
+            {
+                tabControl = new TabControl
+                {
+                    Dock = DockStyle.Fill,
+                    Name = "tabControl"
+                };
+            }
+
+            // Clear any existing tabs
+            tabControl.TabPages.Clear();
+            seriesTabPanels.Clear();
+
+            // Remove the existing flowLayoutPanel from controls and add tabControl instead
+            if (this.Controls.Contains(flowLayoutPanel))
+            {
+                this.Controls.Remove(flowLayoutPanel);
+            }
+
+            if (!this.Controls.Contains(tabControl))
+            {
+                this.Controls.Add(tabControl);
+            }
+
+            // Create tabs for each series
+            foreach (var series in SeriesCatalog.SeriesTitles.Keys)
+            {
+                var tabPage = new TabPage(series)
+                {
+                    Name = $"tab_{series.Replace(" ", "").Replace("&", "And")}"
+                };
+
+                var flowPanel = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    AutoScroll = true,
+                    FlowDirection = FlowDirection.TopDown,
+                    WrapContents = false,
+                    Name = $"flow_{series.Replace(" ", "").Replace("&", "And")}"
+                };
+
+                tabPage.Controls.Add(flowPanel);
+                tabControl.TabPages.Add(tabPage);
+                seriesTabPanels[series] = flowPanel;
+            }
+
+            // Add an "All Games" tab at the beginning
+            var allGamesTab = new TabPage("All Games")
+            {
+                Name = "tabAllGames"
+            };
+
+            var allGamesFlow = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                Name = "flowAllGames"
+            };
+
+            allGamesTab.Controls.Add(allGamesFlow);
+            tabControl.TabPages.Insert(0, allGamesTab);
+            seriesTabPanels["All Games"] = allGamesFlow;
+
+            // Ensure the TabControl is brought to front
+            tabControl.BringToFront();
         }
 
         private async void LoadDataAsync()
@@ -149,7 +225,8 @@ namespace WDSSuperMenu
                                 Height = 32,
                                 Margin = new Padding(0, 4, 0, 0),
                                 TextImageRelation = TextImageRelation.Overlay,
-                                ImageAlign = ContentAlignment.MiddleCenter
+                                ImageAlign = ContentAlignment.MiddleCenter,
+                                Tag = "Settings"
                             };
 
                             groupPanel.Controls.Add(settingsButton);
@@ -179,6 +256,7 @@ namespace WDSSuperMenu
                                 buttons.Add(("Manuals", BuildButton("Manuals", manualsPath, Properties.Resources.icons8_pdf_64, (s, e) =>
                                     Process.Start("explorer.exe", (string)((Button)s).Tag))));
                             }
+                            string seriesName = SeriesCatalog.FindSeriesForGame(subDirName);
 
                             foreach (var exePath in exeFiles)
                             {
@@ -188,28 +266,44 @@ namespace WDSSuperMenu
                                     continue;
 
                                 var appName = Path.GetFileNameWithoutExtension(exeName);
-                                if (appButtonLabel.Equals("Scenario Game") && !appNameCache.Contains(appName))
+                                if (appButtonLabel.Equals("Scenario Game") && !appNameCache.Keys.Contains(appName))
                                 {
-                                    appNameCache.Add(appName);
+
+                                    appNameCache.Add(appName, seriesName);
                                     settingsButton.Click += (s, e) =>
                                     {
-                                        // Show confirmation dialog
+                                        var otherGamesInSeries = appNameCache.Where(kv => kv.Value == seriesName && kv.Key != appName)
+                                            .Select(kv => kv.Key)
+                                            .ToList();
+
+                                        if (otherGamesInSeries.Count == 0)
+                                        {
+                                            MessageBox.Show(
+                                                $"No other games found in the same series as '{seriesName}'.",
+                                                "No Games to Apply Settings To",
+                                                MessageBoxButtons.OK,
+                                                MessageBoxIcon.Information);
+                                            return;
+                                        }
+
                                         DialogResult result = MessageBox.Show(
-                                            $"This will copy the settings from '{subDirName}' to all other games.\n\n" +
-                                            "This action cannot be undone. Are you sure you want to continue?",
-                                            "Confirm Applying Settings",
-                                            MessageBoxButtons.YesNo,
-                                            MessageBoxIcon.Question);
+                                                 $"This will copy the settings from '{subDirName}' to {otherGamesInSeries.Count} other games in the '{seriesName}' series:\n\n" +
+                                                 $"{string.Join(", ", otherGamesInSeries.Take(5))}" +
+                                                 $"{(otherGamesInSeries.Count > 5 ? $"\n...and {otherGamesInSeries.Count - 5} more" : "")}\n\n" +
+                                                 "This action cannot be undone. Are you sure you want to continue?",
+                                                 "Confirm Applying Settings",
+                                                 MessageBoxButtons.YesNo,
+                                                 MessageBoxIcon.Question);
 
                                         if (result == DialogResult.Yes)
                                         {
-                                            //Task.Run(() => 
-                                            CopySettingsAsync(appName, subDirName);//);
+                                            CopySettingsToSeriesAsync(appName, subDirName, otherGamesInSeries);
                                         }
                                     };
 
                                     var toolTip = new ToolTip();
-                                    toolTip.SetToolTip(settingsButton, $"Apply {subDirName} settings to all games");
+                                    string seriesDisplayName = string.IsNullOrEmpty(seriesName) ? "Other Games" : seriesName;
+                                    toolTip.SetToolTip(settingsButton, $"Apply {subDirName} settings to all games in {seriesDisplayName} series");
                                 }
 
                                 Icon exeIcon = null;
@@ -249,12 +343,51 @@ namespace WDSSuperMenu
 
                             if (entriesAdded > 0)
                             {
-                                flowLayoutPanel.Controls.Add(groupPanel);
+                                // Add to "All Games" tab
+                                var allGamesPanel = seriesTabPanels["All Games"];
+                                var allGamesGroupPanel = CloneGroupPanel(groupPanel);
+                                allGamesPanel.Controls.Add(allGamesGroupPanel);
+
+                                // Add to specific series tab if found
+                                if (!string.IsNullOrEmpty(seriesName) && seriesTabPanels.ContainsKey(seriesName))
+                                {
+                                    var seriesPanel = seriesTabPanels[seriesName];
+                                    seriesPanel.Controls.Add(groupPanel);
+                                    Logger.LogToFile($"Added {subDirName} to {seriesName} tab");
+                                }
+                                else
+                                {
+                                    // If no series found, create an "Other Games" tab
+                                    if (!seriesTabPanels.ContainsKey("Other Games"))
+                                    {
+                                        var otherGamesTab = new TabPage("Other Games")
+                                        {
+                                            Name = "tabOtherGames"
+                                        };
+
+                                        var otherGamesFlow = new FlowLayoutPanel
+                                        {
+                                            Dock = DockStyle.Fill,
+                                            AutoScroll = true,
+                                            FlowDirection = FlowDirection.TopDown,
+                                            WrapContents = false,
+                                            Name = "flowOtherGames"
+                                        };
+
+                                        otherGamesTab.Controls.Add(otherGamesFlow);
+                                        tabControl.TabPages.Add(otherGamesTab);
+                                        seriesTabPanels["Other Games"] = otherGamesFlow;
+                                    }
+
+                                    seriesTabPanels["Other Games"].Controls.Add(groupPanel);
+                                    Logger.LogToFile($"Added {subDirName} to Other Games tab (no series match found)");
+                                }
+
                                 groupPanel.PerformLayout();
-                                maxGroupPanelWidth = Math.Max(maxGroupPanelWidth, groupPanel.PreferredSize.Width);
-                                totalHeight += groupPanel.PreferredSize.Height;
                             }
                         }
+
+
                     }
                     catch (Exception ex)
                     {
@@ -262,23 +395,53 @@ namespace WDSSuperMenu
                     }
                 }
 
-                // Calculate the total width more accurately
-                int iconWidth = 64; // PictureBox width
-                int settingsButtonWidth = 30; // Settings button width
-                int labelWidth = 250; // Label width
-                int savesManualButtonWidth = 80; // Approximate width for "Saves"/"Manuals" buttons
-                int buttonCount = ExeNameMappings.Count; // Number of exe buttons
-                int totalMargins = 12 + 8 + 3 + 4 + (buttonCount * 8); // All margins combined
+                // Remove empty tabs
+                var tabsToRemove = new List<TabPage>();
+                for (int i = 1; i < tabControl.TabPages.Count; i++) // Skip "All Games" tab
+                {
+                    var tabPage = tabControl.TabPages[i];
+                    var flowPanel = tabPage.Controls[0] as FlowLayoutPanel;
+                    if (flowPanel?.Controls.Count == 0)
+                    {
+                        tabsToRemove.Add(tabPage);
+                    }
+                }
+
+                foreach (var tab in tabsToRemove)
+                {
+                    tabControl.TabPages.Remove(tab);
+                    var key = seriesTabPanels.FirstOrDefault(x => x.Value == tab.Controls[0]).Key;
+                    if (key != null)
+                    {
+                        seriesTabPanels.Remove(key);
+                    }
+                }
+
+                // Calculate form size (keep existing logic but adjust for tabs)
+                int iconWidth = 64;
+                int settingsButtonWidth = 30;
+                int labelWidth = 250;
+                int savesManualButtonWidth = 80;
+                int buttonCount = ExeNameMappings.Count;
+                int totalMargins = 12 + 8 + 3 + 4 + (buttonCount * 8);
 
                 int calculatedWidth = iconWidth + settingsButtonWidth + labelWidth +
-                                     (2 * savesManualButtonWidth) + // Max 2 saves/manual buttons
+                                     (2 * savesManualButtonWidth) +
                                      (buttonCount * maxButtonWidth) +
-                                     totalMargins + 70; // Extra padding
+                                     totalMargins + 70;
 
                 this.Width = Math.Min(calculatedWidth, Screen.PrimaryScreen.WorkingArea.Width - 100);
                 Logger.LogToFile($"Calculated form width: {calculatedWidth}px, actual width: {this.Width}px");
 
-                this.Height = Math.Min(totalHeight + 100, Screen.PrimaryScreen.WorkingArea.Height - 100);
+                // Adjust height for tab control
+                int maxTabHeight = 0;
+                foreach (var panel in seriesTabPanels.Values)
+                {
+                    int panelHeight = panel.Controls.Cast<Control>().Sum(c => c.Height + c.Margin.Vertical);
+                    maxTabHeight = Math.Max(maxTabHeight, panelHeight);
+                }
+
+                this.Height = Math.Min(maxTabHeight + 150, Screen.PrimaryScreen.WorkingArea.Height - 100); // +150 for tab headers and margins
 
                 this.Location = new Point(
                          (Screen.PrimaryScreen.WorkingArea.Width - this.Width) / 2,
@@ -287,8 +450,98 @@ namespace WDSSuperMenu
             }
             finally
             {
-                flowLayoutPanel.ResumeLayout(true);
+                // Resume layout for all panels
+                foreach (var panel in seriesTabPanels.Values)
+                {
+                    panel.ResumeLayout(true);
+                }
             }
+        }
+
+        private FlowLayoutPanel CloneGroupPanel(FlowLayoutPanel original)
+        {
+            var clone = new FlowLayoutPanel
+            {
+                FlowDirection = original.FlowDirection,
+                AutoSize = original.AutoSize,
+                AutoSizeMode = original.AutoSizeMode,
+                WrapContents = original.WrapContents,
+                Margin = original.Margin
+            };
+
+            // Clone all controls
+            foreach (Control control in original.Controls)
+            {
+                if (control is PictureBox pb)
+                {
+                    var clonePb = new PictureBox
+                    {
+                        Size = pb.Size,
+                        Margin = pb.Margin,
+                        Image = pb.Image
+                    };
+                    clone.Controls.Add(clonePb);
+                }
+                else if (control is Button btn)
+                {
+                    var cloneBtn = new Button
+                    {
+                        Text = btn.Text,
+                        Tag = btn.Tag,
+                        Size = btn.Size,
+                        Margin = btn.Margin,
+                        Image = btn.Image,
+                        TextImageRelation = btn.TextImageRelation,
+                        ImageAlign = btn.ImageAlign,
+                        Padding = btn.Padding,
+                        AutoSize = btn.AutoSize,
+                        AutoSizeMode = btn.AutoSizeMode,
+                        MinimumSize = btn.MinimumSize
+                    };
+
+                    // Recreate event handlers based on button type/tag
+                    if (btn.Tag is string tag)
+                    {
+                        if (Directory.Exists(tag))
+                        {
+                            // This is a folder button (Saves/Manuals)
+                            cloneBtn.Click += (s, e) => Process.Start("explorer.exe", (string)((Button)s).Tag);
+
+                            var toolTip = new ToolTip();
+                            toolTip.SetToolTip(cloneBtn, $"Open {tag}");
+                        }
+                        else if (File.Exists(tag) && Path.GetExtension(tag).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // This is an executable button
+                            cloneBtn.Click += (s, e) => LaunchApplication((string)((Button)s).Tag);
+
+                            var toolTip = new ToolTip();
+                            toolTip.SetToolTip(cloneBtn, $"Open {tag}");
+                        }
+                        else if (tag.Equals("Settings"))
+                        {
+                            cloneBtn = null;
+                        }
+                    }
+
+                    if (cloneBtn != null)
+                        clone.Controls.Add(cloneBtn);
+                }
+                else if (control is Label lbl)
+                {
+                    var cloneLbl = new Label
+                    {
+                        Text = lbl.Text,
+                        Size = lbl.Size,
+                        Margin = lbl.Margin,
+                        AutoSize = lbl.AutoSize,
+                        TextAlign = lbl.TextAlign
+                    };
+                    clone.Controls.Add(cloneLbl);
+                }
+            }
+
+            return clone;
         }
 
         private string GetVersionFromRegistry(string subdirName)
@@ -513,7 +766,7 @@ namespace WDSSuperMenu
             MessageBox.Show(aboutText, $"About {productName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private async Task CopySettingsAsync(string sourceAppName, string sourceDisplayName)
+        private async Task CopySettingsToSeriesAsync(string sourceAppName, string sourceDisplayName, List<string> targetAppNames)
         {
             using (var progressDialog = new SettingsProgressDialog())
             {
@@ -531,7 +784,7 @@ namespace WDSSuperMenu
                         int totalGames = appNameCache.Count - 1; // Exclude source game
                         int currentGame = 0;
 
-                        foreach (var targetAppName in appNameCache)
+                        foreach (var targetAppName in targetAppNames)
                         {
                             if (targetAppName.Equals(sourceAppName, StringComparison.OrdinalIgnoreCase))
                                 continue; // Skip copying to itself
