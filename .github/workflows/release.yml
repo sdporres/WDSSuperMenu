@@ -28,6 +28,7 @@ jobs:
         id: version
         run: |
             $version = $env:GITHUB_REF.Replace("refs/tags/v", "")
+            $version = "v$version"
             Write-Output "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build specific project
