@@ -10,5 +10,8 @@
     <Compile Update="SettingsProgressDialog.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="UpdateNotificationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

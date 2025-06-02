@@ -9,6 +9,8 @@
         private MenuStrip menuStrip;
         private ToolStripMenuItem helpToolStripMenuItem;
         private ToolStripMenuItem aboutToolStripMenuItem;
+        private ToolStripMenuItem checkForUpdatesToolStripMenuItem;
+        private ToolStripSeparator toolStripSeparator1;
         private TabControl tabControl;
         private Dictionary<string, FlowLayoutPanel> seriesTabPanels = new Dictionary<string, FlowLayoutPanel>();
 
@@ -46,7 +48,10 @@
         {
             this.menuStrip = new MenuStrip();
             this.helpToolStripMenuItem = new ToolStripMenuItem();
+            this.checkForUpdatesToolStripMenuItem = new ToolStripMenuItem();
+            this.toolStripSeparator1 = new ToolStripSeparator();
             this.aboutToolStripMenuItem = new ToolStripMenuItem();
+
             this.flowLayoutPanel = new FlowLayoutPanel();
             this.tabControl = new TabControl();
 
@@ -68,10 +73,26 @@
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
+                this.checkForUpdatesToolStripMenuItem,
+                this.toolStripSeparator1,
                 this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new Size(44, 20);
             this.helpToolStripMenuItem.Text = "&Help";
+
+            // 
+            // checkForUpdatesToolStripMenuItem
+            // 
+            this.checkForUpdatesToolStripMenuItem.Name = "checkForUpdatesToolStripMenuItem";
+            this.checkForUpdatesToolStripMenuItem.Size = new Size(180, 22);
+            this.checkForUpdatesToolStripMenuItem.Text = "Check for &Updates";
+            this.checkForUpdatesToolStripMenuItem.Click += new EventHandler(this.CheckForUpdatesMenuItem_Click);
+
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new Size(177, 6);
 
             // 
             // aboutToolStripMenuItem

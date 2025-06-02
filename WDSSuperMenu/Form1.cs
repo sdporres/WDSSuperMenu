@@ -131,6 +131,102 @@ namespace WDSSuperMenu
                     Visible = true;
                     loadingDialog.Close();
                 });
+
+                // Check for updates after form is loaded (if enabled)
+                if (Properties.Settings.Default.AutoCheckUpdates)
+                {
+                    _ = CheckForUpdatesAsync();
+                }
+            }
+        }
+
+        private async Task CheckForUpdatesAsync()
+        {
+            try
+            {
+                // Don't check more than once per day
+                if (DateTime.Now - Properties.Settings.Default.LastUpdateCheck < TimeSpan.FromDays(1))
+                {
+                    Logger.LogToFile("Skipping update check - already checked today");
+                    return;
+                }
+
+                var updateInfo = await UpdateChecker.CheckForUpdatesAsync();
+
+                // Update last check time
+                Properties.Settings.Default.LastUpdateCheck = DateTime.Now;
+                Properties.Settings.Default.Save();
+
+                if (updateInfo.IsUpdateAvailable &&
+                    updateInfo.Version != Properties.Settings.Default.SkippedVersion)
+                {
+                    // Show update notification on UI thread
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        ShowUpdateNotification(updateInfo);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogToFile($"Error during automatic update check: {ex}");
+                // Don't show error to user for automatic checks
+            }
+        }
+
+        private void ShowUpdateNotification(UpdateInfo updateInfo)
+        {
+            using (var updateForm = new UpdateNotificationForm(updateInfo))
+            {
+                var result = updateForm.ShowDialog(this);
+
+                if (result == DialogResult.OK)
+                {
+                    // User chose to download - the form handles opening the URL
+                    Logger.LogToFile($"User chose to download update {updateInfo.Version}");
+                }
+                else if (result == DialogResult.Ignore)
+                {
+                    // User chose to skip this version - already handled in the form
+                    Logger.LogToFile($"User chose to skip version {updateInfo.Version}");
+                }
+                else
+                {
+                    // User chose remind later - do nothing
+                    Logger.LogToFile("User chose to be reminded later about update");
+                }
+            }
+        }
+
+        // Manual update check (called from menu)
+        private async void CheckForUpdatesMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Show checking message
+                var originalText = this.Text;
+                this.Text = "WDS Super Menu - Checking for updates...";
+
+                var updateInfo = await UpdateChecker.CheckForUpdatesAsync();
+
+                this.Text = originalText;
+
+                if (updateInfo.IsUpdateAvailable)
+                {
+                    ShowUpdateNotification(updateInfo);
+                }
+                else
+                {
+                    MessageBox.Show(this, "You are using the latest version of WDS Super Menu.",
+                        "No Updates Available", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.Text = this.Text.Replace(" - Checking for updates...", "");
+                Logger.LogToFile($"Error during manual update check: {ex}");
+                MessageBox.Show(this, "Failed to check for updates. Please try again later.",
+                    "Update Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
