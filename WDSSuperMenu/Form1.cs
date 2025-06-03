@@ -15,13 +15,13 @@ namespace WDSSuperMenu
         public Form1()
         {
             InitializeComponent();
+
             // Hide form and prevent any rendering
             Opacity = 0;
             Visible = false;
             SuspendLayout();
 
-            InitializeTabControl();
-
+            // Start the async initialization - don't call InitializeTabControl here
             LoadDataAsync();
         }
 
@@ -105,23 +105,27 @@ namespace WDSSuperMenu
                 loadingDialog.Show();
                 Application.DoEvents(); // Ensure dialog is rendered
 
+                // Load series data first (this is the key change)
+                await SeriesCatalog.LoadSeriesDataAsync().ConfigureAwait(false);
+
                 // Run heavy work in the background
                 var iconCacheTask = Task.Run(() => RegistryTool.BuildRegistryIconCache());
 
-                await Task.WhenAll(iconCacheTask);
+                await Task.WhenAll(iconCacheTask).ConfigureAwait(false);
 
                 // Update UI on UI thread
-                await Task.Run(() =>
+                this.Invoke((System.Windows.Forms.MethodInvoker)delegate
                 {
-                    Invoke((System.Windows.Forms.MethodInvoker)delegate
-                    {
-                        registryIconCache = iconCacheTask.Result;
-                        ScanForWDSFolders();
-                        // Force complete layout
-                        flowLayoutPanel.PerformLayout();
-                        this.PerformLayout();
-                        ResumeLayout(true);
-                    });
+                    registryIconCache = iconCacheTask.Result;
+
+                    // Now initialize the tab control after series data is loaded
+                    InitializeTabControl();
+
+                    ScanForWDSFolders();
+                    // Force complete layout
+                    flowLayoutPanel.PerformLayout();
+                    this.PerformLayout();
+                    ResumeLayout(true);
                 });
 
                 // Show form only after all rendering is complete
@@ -135,7 +139,7 @@ namespace WDSSuperMenu
                 // Check for updates after form is loaded (if enabled)
                 if (Properties.Settings.Default.AutoCheckUpdates)
                 {
-                    _ = CheckForUpdatesAsync();
+                    _ = CheckForUpdatesAsync().ConfigureAwait(false);
                 }
             }
         }

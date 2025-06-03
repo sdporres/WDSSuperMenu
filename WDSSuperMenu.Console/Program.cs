@@ -2,6 +2,6 @@
 using WDSSuperMenu;
 using WDSSuperMenu.Core;
 
-RegistryReplacer.CopySettings("cpw", "cpb");
+var first = SeriesCatalog.SeriesTitles.First();
 
 Console.ReadKey();
