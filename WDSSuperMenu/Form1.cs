@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Windows.Forms;
 using WDSSuperMenu.Core;
 
 namespace WDSSuperMenu
@@ -53,7 +52,7 @@ namespace WDSSuperMenu
             }
 
             // Create tabs for each series
-            foreach (var series in SeriesCatalog.SeriesTitles.Keys)
+            foreach (var series in SeriesCatalog.SeriesTitles.Keys.OrderBy(x => x))
             {
                 var tabPage = new TabPage(series)
                 {
