@@ -11,5 +11,8 @@
     <Setting Name="LastUpdateCheck" Type="System.DateTime" Scope="User">
       <Value Profile="(Default)">2000-01-01</Value>
     </Setting>
+    <Setting Name="LastSelectedTabName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">All Games</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

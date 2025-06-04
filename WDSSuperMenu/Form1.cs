@@ -95,6 +95,31 @@ namespace WDSSuperMenu
 
             // Ensure the TabControl is brought to front
             tabControl.BringToFront();
+
+            var lastTabName = Properties.Settings.Default.LastSelectedTabName;
+            if (!string.IsNullOrEmpty(lastTabName))
+            {
+                for (int i = 0; i < tabControl.TabPages.Count; i++)
+                {
+                    if (tabControl.TabPages[i].Text == lastTabName)
+                    {
+                        tabControl.SelectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // Add event handler to save tab selection
+            tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
+        }
+
+        private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (tabControl.SelectedTab != null)
+            {
+                Properties.Settings.Default.LastSelectedTabName = tabControl.SelectedTab.Text;
+                Properties.Settings.Default.Save();
+            }
         }
 
         private async void LoadDataAsync()

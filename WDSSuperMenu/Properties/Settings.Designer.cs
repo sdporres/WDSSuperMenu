@@ -58,5 +58,17 @@ namespace WDSSuperMenu.Properties {
                 this["LastUpdateCheck"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("All Games")]
+        public string LastSelectedTabName {
+            get {
+                return ((string)(this["LastSelectedTabName"]));
+            }
+            set {
+                this["LastSelectedTabName"] = value;
+            }
+        }
     }
 }
