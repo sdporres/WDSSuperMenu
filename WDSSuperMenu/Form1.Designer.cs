@@ -46,102 +46,91 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.menuStrip = new MenuStrip();
-            this.helpToolStripMenuItem = new ToolStripMenuItem();
-            this.checkForUpdatesToolStripMenuItem = new ToolStripMenuItem();
-            this.toolStripSeparator1 = new ToolStripSeparator();
-            this.aboutToolStripMenuItem = new ToolStripMenuItem();
-
-            this.flowLayoutPanel = new FlowLayoutPanel();
-            this.tabControl = new TabControl();
-
-            this.menuStrip.SuspendLayout();
-            this.SuspendLayout();
-
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            menuStrip = new MenuStrip();
+            helpToolStripMenuItem = new ToolStripMenuItem();
+            checkForUpdatesToolStripMenuItem = new ToolStripMenuItem();
+            toolStripSeparator1 = new ToolStripSeparator();
+            aboutToolStripMenuItem = new ToolStripMenuItem();
+            flowLayoutPanel = new FlowLayoutPanel();
+            tabControl = new TabControl();
+            menuStrip.SuspendLayout();
+            SuspendLayout();
             // 
             // menuStrip
             // 
-            this.menuStrip.Items.AddRange(new ToolStripItem[] {
-                this.helpToolStripMenuItem});
-            this.menuStrip.Location = new Point(0, 0);
-            this.menuStrip.Name = "menuStrip";
-            this.menuStrip.Size = new Size(600, 24);
-            this.menuStrip.TabIndex = 0;
-            this.menuStrip.Text = "menuStrip";
-
+            menuStrip.Items.AddRange(new ToolStripItem[] { helpToolStripMenuItem });
+            menuStrip.Location = new Point(0, 0);
+            menuStrip.Name = "menuStrip";
+            menuStrip.Size = new Size(600, 24);
+            menuStrip.TabIndex = 0;
+            menuStrip.Text = "menuStrip";
             // 
             // helpToolStripMenuItem
             // 
-            this.helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
-                this.checkForUpdatesToolStripMenuItem,
-                this.toolStripSeparator1,
-                this.aboutToolStripMenuItem});
-            this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new Size(44, 20);
-            this.helpToolStripMenuItem.Text = "&Help";
-
+            helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { checkForUpdatesToolStripMenuItem, toolStripSeparator1, aboutToolStripMenuItem });
+            helpToolStripMenuItem.Name = "helpToolStripMenuItem";
+            helpToolStripMenuItem.Size = new Size(44, 20);
+            helpToolStripMenuItem.Text = "&Help";
             // 
             // checkForUpdatesToolStripMenuItem
             // 
-            this.checkForUpdatesToolStripMenuItem.Name = "checkForUpdatesToolStripMenuItem";
-            this.checkForUpdatesToolStripMenuItem.Size = new Size(180, 22);
-            this.checkForUpdatesToolStripMenuItem.Text = "Check for &Updates";
-            this.checkForUpdatesToolStripMenuItem.Click += new EventHandler(this.CheckForUpdatesMenuItem_Click);
-
+            checkForUpdatesToolStripMenuItem.Name = "checkForUpdatesToolStripMenuItem";
+            checkForUpdatesToolStripMenuItem.Size = new Size(171, 22);
+            checkForUpdatesToolStripMenuItem.Text = "Check for &Updates";
+            checkForUpdatesToolStripMenuItem.Click += CheckForUpdatesMenuItem_Click;
             // 
             // toolStripSeparator1
             // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new Size(177, 6);
-
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new Size(168, 6);
             // 
             // aboutToolStripMenuItem
             // 
-            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new Size(107, 22);
-            this.aboutToolStripMenuItem.Text = "&About";
-            this.aboutToolStripMenuItem.Click += new EventHandler(this.aboutToolStripMenuItem_Click);
-
-            // 
-            // tabControl
-            // 
-            this.tabControl.Dock = DockStyle.Fill;
-            this.tabControl.Name = "tabControl";
-            this.tabControl.TabIndex = 1;
-
-            // Form settings
-            this.AutoSize = false; // we're setting size manually now
-            this.AutoScroll = true; // allow scrolling if it's still too big
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.MinimumSize = new Size(600, 400);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MainMenuStrip = this.menuStrip;
-
+            aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            aboutToolStripMenuItem.Size = new Size(171, 22);
+            aboutToolStripMenuItem.Text = "&About";
+            aboutToolStripMenuItem.Click += aboutToolStripMenuItem_Click;
             // 
             // flowLayoutPanel
             // 
-            this.flowLayoutPanel.Dock = DockStyle.Fill;
-            this.flowLayoutPanel.AutoScroll = true;
-            this.flowLayoutPanel.FlowDirection = FlowDirection.TopDown;
-            this.flowLayoutPanel.WrapContents = false;
-
-            // Add controls to form - TabControl will be added in InitializeTabControl()
-            // Note: flowLayoutPanel is kept for backward compatibility but removed in InitializeTabControl()
-            this.Controls.Add(this.flowLayoutPanel);
-            this.Controls.Add(this.menuStrip);
-            // Don't add tabControl here - it's added in InitializeTabControl()
-
+            flowLayoutPanel.AutoScroll = true;
+            flowLayoutPanel.Dock = DockStyle.Fill;
+            flowLayoutPanel.FlowDirection = FlowDirection.TopDown;
+            flowLayoutPanel.Location = new Point(0, 24);
+            flowLayoutPanel.Name = "flowLayoutPanel";
+            flowLayoutPanel.Size = new Size(600, 376);
+            flowLayoutPanel.TabIndex = 0;
+            flowLayoutPanel.WrapContents = false;
             // 
-            // MainForm
+            // tabControl
             // 
-            this.ClientSize = new System.Drawing.Size(600, 400);
-            this.Text = "WDS Super Menu";
-
-            this.menuStrip.ResumeLayout(false);
-            this.menuStrip.PerformLayout();
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            tabControl.Dock = DockStyle.Fill;
+            tabControl.Location = new Point(0, 0);
+            tabControl.Name = "tabControl";
+            tabControl.SelectedIndex = 0;
+            tabControl.Size = new Size(200, 100);
+            tabControl.TabIndex = 1;
+            // 
+            // Form1
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            AutoScroll = true;
+            ClientSize = new Size(600, 400);
+            Controls.Add(flowLayoutPanel);
+            Controls.Add(menuStrip);
+            FormBorderStyle = FormBorderStyle.Fixed3D;
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            MainMenuStrip = menuStrip;
+            MinimumSize = new Size(600, 400);
+            Name = "Form1";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "WDS Super Menu";
+            menuStrip.ResumeLayout(false);
+            menuStrip.PerformLayout();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
