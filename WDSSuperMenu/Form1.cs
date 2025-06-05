@@ -533,7 +533,7 @@ namespace WDSSuperMenu
                 int calculatedWidth = iconWidth + settingsButtonWidth + labelWidth +
                                      (2 * savesManualButtonWidth) +
                                      (buttonCount * maxButtonWidth) +
-                                     totalMargins + 70;
+                                     totalMargins + 35;
 
                 this.Width = Math.Min(calculatedWidth, Screen.PrimaryScreen.WorkingArea.Width - 100);
                 Logger.LogToFile($"Calculated form width: {calculatedWidth}px, actual width: {this.Width}px");
@@ -625,6 +625,12 @@ namespace WDSSuperMenu
                         }
                         else if (tag.Equals("Settings"))
                         {
+                            clone.Controls.Add(new Label
+                            {
+                                Size = cloneBtn.Size,
+                                Padding = cloneBtn.Padding,
+                                Margin = cloneBtn.Margin
+                            });
                             cloneBtn = null;
                         }
                     }
