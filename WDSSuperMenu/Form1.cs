@@ -313,34 +313,8 @@ namespace WDSSuperMenu
                                 AutoSize = true,
                                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                                 WrapContents = false,
-                                Margin = new Padding(12, 6, 6, 6)
+                                Margin = new Padding(12, 6, 6, 6),
                             };
-
-                            int iconSize = groupIcon != null && groupIcon.Width > 32 ? 64 : 32;
-                            var pictureBox = new PictureBox
-                            {
-                                Size = new Size(iconSize, iconSize),
-                                Margin = new Padding(0, 3, 8, 3)
-                            };
-
-                            if (groupIcon != null)
-                            {
-                                try
-                                {
-                                    pictureBox.Image = groupIcon.ToBitmap().GetThumbnailImage(iconSize, iconSize, null, IntPtr.Zero);
-                                    Logger.LogToFile($"Group icon for {Path.GetFileName(subdir)} set to {iconSize}x{iconSize}, native size: {groupIcon.Width}x{groupIcon.Height}");
-                                }
-                                catch (Exception ex)
-                                {
-                                    Logger.LogToFile($"Failed to set group icon for {Path.GetFileName(subdir)}: {ex}");
-                                }
-                            }
-                            else
-                            {
-                                Logger.LogToFile($"No icon found for {Path.GetFileName(subdir)}, using placeholder {iconSize}x{iconSize}");
-                            }
-
-                            groupPanel.Controls.Add(pictureBox);
 
                             var settingsButton = new Button
                             {
@@ -352,22 +326,12 @@ namespace WDSSuperMenu
                                 ImageAlign = ContentAlignment.MiddleCenter,
                                 Tag = "Settings"
                             };
-
-                            groupPanel.Controls.Add(settingsButton);
+                            var buttons = new List<(string Name, Control Control)>();
+                            buttons.Add(("Settings", settingsButton));
 
                             var subDirName = Path.GetFileName(subdir);
                             var versionLabel = GetVersionFromRegistry(subDirName);
-                            groupPanel.Controls.Add(new Label
-                            {
-                                Text = $"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({versionLabel})")}",
-                                Width = 250,
-                                Height = 32,
-                                AutoSize = false,
-                                TextAlign = ContentAlignment.MiddleLeft,
-                                Margin = new Padding(3)
-                            });
 
-                            var buttons = new List<(string Name, Control Control)>();
 
                             if (Directory.Exists(savesPath))
                             {
@@ -384,14 +348,22 @@ namespace WDSSuperMenu
 
                             foreach (var exePath in exeFiles)
                             {
+
                                 string exeName = Path.GetFileName(exePath).ToLowerInvariant();
                                 var appButtonLabel = BuildAppName(exeName);
                                 if (string.IsNullOrEmpty(appButtonLabel))
                                     continue;
 
                                 var appName = Path.GetFileNameWithoutExtension(exeName);
-                                if (appButtonLabel.Equals("Scenario Game") && !appNameCache.Keys.Contains(appName))
+                                if (appButtonLabel.Equals("Scenario Game"))
                                 {
+                                    var mainButton = BuildButton($"{subDirName}{(string.IsNullOrEmpty(versionLabel) ? "" : $" ({versionLabel})")}", exePath, groupIcon, (s, e) =>
+                                        LaunchApplication((string)((Button)s).Tag));
+                                    mainButton.AutoSize = false;
+                                    mainButton.Size = new Size(250, 40);
+                                    mainButton.TextAlign = ContentAlignment.MiddleCenter;
+                                    buttons.Add((appButtonLabel, mainButton));
+                                    Logger.LogToFile($"Created button '{appButtonLabel}' with width: {mainButton.Width}px");
 
                                     appNameCache.Add(appName, seriesName);
                                     settingsButton.Click += (s, e) =>
@@ -428,9 +400,13 @@ namespace WDSSuperMenu
                                     var toolTip = new ToolTip();
                                     string seriesDisplayName = string.IsNullOrEmpty(seriesName) ? "Other Games" : seriesName;
                                     toolTip.SetToolTip(settingsButton, $"Apply {subDirName} settings to all games in {seriesDisplayName} series");
+
+                                    continue;
                                 }
 
+
                                 Icon exeIcon = null;
+
                                 try
                                 {
                                     if (File.Exists(exePath))
@@ -449,7 +425,12 @@ namespace WDSSuperMenu
                                 Logger.LogToFile($"Created button '{appButtonLabel}' with width: {button.Width}px");
                             }
 
-                            foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals"))
+                            foreach (var button in buttons.Where(b => b.Name == "Scenario Game"))
+                            {
+                                groupPanel.Controls.Add(button.Control);
+                            }
+
+                            foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals" || b.Name == "Settings"))
                             {
                                 groupPanel.Controls.Add(button.Control);
                             }
@@ -774,17 +755,16 @@ namespace WDSSuperMenu
 
         private static readonly Dictionary<string, ExeNameOrder> ExeNameMappings = new()
         {
-            { "camp", new ExeNameOrder("Campaign Editor", 4) },
-            { "edit", new ExeNameOrder("Scenario Editor", 3) },
-            { "start", new ExeNameOrder("Campaign Game", 2) },
-            { "default", new ExeNameOrder("Scenario Game", 1)}
+            { "camp", new ExeNameOrder("Campaign Editor", 3) },
+            { "edit", new ExeNameOrder("Scenario Editor", 2) },
+            { "start", new ExeNameOrder("Campaign Game", 1) },
         };
 
         private static string BuildAppName(string exeName)
         {
             exeName = exeName.ToLowerInvariant();
             if (exeName.Contains("demo") || Path.GetFileNameWithoutExtension(exeName).Length <= 4)
-                return ExeNameMappings["default"].Name;
+                return "Scenario Game";
 
             foreach (var mapping in ExeNameMappings)
             {
