@@ -536,7 +536,7 @@ namespace WDSSuperMenu
                 int calculatedWidth = iconWidth + settingsButtonWidth + labelWidth +
                                      (2 * savesManualButtonWidth) +
                                      (buttonCount * maxButtonWidth) +
-                                     totalMargins + 35;
+                                     totalMargins + 60;
 
                 this.Width = Math.Min(calculatedWidth, Screen.PrimaryScreen.WorkingArea.Width - 100);
                 Logger.LogToFile($"Calculated form width: {calculatedWidth}px, actual width: {this.Width}px");
