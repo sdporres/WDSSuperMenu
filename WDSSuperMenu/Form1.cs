@@ -319,13 +319,16 @@ namespace WDSSuperMenu
                             var settingsButton = new Button
                             {
                                 Image = Properties.Resources.export_settings,
-                                Width = 32,
-                                Height = 32,
-                                Margin = new Padding(0, 4, 0, 0),
+                                AutoSize = true,
+                                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                                Margin = new Padding(4),
+                                Size = new Size(40, 40),
                                 TextImageRelation = TextImageRelation.Overlay,
                                 ImageAlign = ContentAlignment.MiddleCenter,
-                                Tag = "Settings"
+                                Tag = "Settings",
+                                Anchor = AnchorStyles.None
                             };
+
                             var buttons = new List<(string Name, Control Control)>();
                             buttons.Add(("Settings", settingsButton));
 
@@ -365,7 +368,7 @@ namespace WDSSuperMenu
                                     buttons.Add((appButtonLabel, mainButton));
                                     Logger.LogToFile($"Created button '{appButtonLabel}' with width: {mainButton.Width}px");
 
-                                    appNameCache.Add(appName, seriesName);
+                                    appNameCache.TryAdd(appName, seriesName);
                                     settingsButton.Click += (s, e) =>
                                     {
                                         var otherGamesInSeries = appNameCache.Where(kv => kv.Value == seriesName && kv.Key != appName)
@@ -593,15 +596,14 @@ namespace WDSSuperMenu
                     {
                         Text = btn.Text,
                         Tag = btn.Tag,
+                        AutoSize = false,
                         Size = btn.Size,
                         Margin = btn.Margin,
                         Image = btn.Image,
                         TextImageRelation = btn.TextImageRelation,
                         ImageAlign = btn.ImageAlign,
                         Padding = btn.Padding,
-                        AutoSize = btn.AutoSize,
-                        AutoSizeMode = btn.AutoSizeMode,
-                        MinimumSize = btn.MinimumSize
+                        Anchor = btn.Anchor
                     };
 
                     // Recreate event handlers based on button type/tag
@@ -625,13 +627,13 @@ namespace WDSSuperMenu
                         }
                         else if (tag.Equals("Settings"))
                         {
-                            clone.Controls.Add(new Label
-                            {
-                                Size = cloneBtn.Size,
-                                Padding = cloneBtn.Padding,
-                                Margin = cloneBtn.Margin
-                            });
-                            cloneBtn = null;
+                            cloneBtn.Image = Properties.Resources.export_settings_empty;
+                            cloneBtn.FlatStyle = FlatStyle.Flat;
+                            cloneBtn.BackColor = this.BackColor;
+                            cloneBtn.ForeColor = this.BackColor;
+                            cloneBtn.Text = "";
+                            cloneBtn.TabStop = false;
+                            cloneBtn.Enabled = false;
                         }
                     }
 
@@ -720,7 +722,8 @@ namespace WDSSuperMenu
                 Margin = new Padding(4),
                 MinimumSize = new Size(100, 32),
                 TextImageRelation = TextImageRelation.ImageBeforeText,
-                ImageAlign = ContentAlignment.MiddleLeft
+                ImageAlign = ContentAlignment.MiddleLeft,
+                Anchor = AnchorStyles.None
             };
 
             if (image != null)

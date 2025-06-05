@@ -73,6 +73,16 @@ namespace WDSSuperMenu.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap export_settings_empty {
+            get {
+                object obj = ResourceManager.GetObject("export_settings_empty", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap icons8_folder_64 {
             get {
                 object obj = ResourceManager.GetObject("icons8_folder_64", resourceCulture);
