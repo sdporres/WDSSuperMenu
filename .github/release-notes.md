@@ -1,3 +1,3 @@
-# Changed
+# Fixed
 
-- Remove the "Scenario Game" button - click on the game entry to launch the game
+- Detection of main game launcher
