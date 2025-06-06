@@ -26,16 +26,6 @@ namespace WDSSuperMenu
 
         private void InitializeTabControl()
         {
-            // Create the TabControl if it doesn't exist
-            if (tabControl == null)
-            {
-                tabControl = new TabControl
-                {
-                    Dock = DockStyle.Fill,
-                    Name = "tabControl"
-                };
-            }
-
             // Clear any existing tabs
             tabControl.TabPages.Clear();
             seriesTabPanels.Clear();
