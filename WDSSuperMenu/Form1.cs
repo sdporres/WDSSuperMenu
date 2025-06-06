@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using WDSSuperMenu.Core;
 
@@ -110,6 +110,62 @@ namespace WDSSuperMenu
 
             // Add event handler to save tab selection
             tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
+
+            InitializeTabControlMouseWheelScrolling();
+        }
+
+        private void InitializeTabControlMouseWheelScrolling()
+        {
+            // Enable mouse wheel scrolling on the TabControl
+            tabControl.MouseWheel += TabControl_MouseWheel_NoWrap;
+
+            // Also handle mouse wheel when hovering over tab pages
+            foreach (TabPage tabPage in tabControl.TabPages)
+            {
+                tabPage.MouseWheel += TabControl_MouseWheel_NoWrap;
+            }
+        }
+
+        // Alternative version with smoother scrolling and no wrapping
+        private void TabControl_MouseWheel_NoWrap(object sender, MouseEventArgs e)
+        {
+            if (tabControl.TabPages.Count <= 1)
+                return;
+
+            int currentIndex = tabControl.SelectedIndex;
+            int newIndex = currentIndex;
+
+            // Scroll up - go to next tab (don't wrap)
+            if (e.Delta < 0)
+            {
+                newIndex = Math.Min(currentIndex + 1, tabControl.TabPages.Count - 1);
+            }
+            // Scroll down - go to previous tab (don't wrap)
+            else if (e.Delta > 0)
+            {
+                newIndex = Math.Max(currentIndex - 1, 0);
+            }
+
+            if (newIndex != currentIndex)
+            {
+                tabControl.SelectedIndex = newIndex;
+            }
+        }
+
+        private void ScrollTabsLeft()
+        {
+            if (tabControl.SelectedIndex > 0)
+            {
+                tabControl.SelectedIndex--;
+            }
+        }
+
+        private void ScrollTabsRight()
+        {
+            if (tabControl.SelectedIndex < tabControl.TabPages.Count - 1)
+            {
+                tabControl.SelectedIndex++;
+            }
         }
 
         private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
