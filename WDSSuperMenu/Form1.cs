@@ -22,6 +22,8 @@ namespace WDSSuperMenu
 
             // Start the async initialization - don't call InitializeTabControl here
             LoadDataAsync();
+
+
         }
 
         private void InitializeTabControl()
@@ -85,18 +87,7 @@ namespace WDSSuperMenu
             // Ensure the TabControl is brought to front
             tabControl.BringToFront();
 
-            var lastTabName = Properties.Settings.Default.LastSelectedTabName;
-            if (!string.IsNullOrEmpty(lastTabName))
-            {
-                for (int i = 0; i < tabControl.TabPages.Count; i++)
-                {
-                    if (tabControl.TabPages[i].Text == lastTabName)
-                    {
-                        tabControl.SelectedIndex = i;
-                        break;
-                    }
-                }
-            }
+
 
             // Add event handler to save tab selection
             tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
@@ -142,22 +133,6 @@ namespace WDSSuperMenu
             }
         }
 
-        private void ScrollTabsLeft()
-        {
-            if (tabControl.SelectedIndex > 0)
-            {
-                tabControl.SelectedIndex--;
-            }
-        }
-
-        private void ScrollTabsRight()
-        {
-            if (tabControl.SelectedIndex < tabControl.TabPages.Count - 1)
-            {
-                tabControl.SelectedIndex++;
-            }
-        }
-
         private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (tabControl.SelectedTab != null)
@@ -195,12 +170,26 @@ namespace WDSSuperMenu
                     // Force complete layout
                     flowLayoutPanel.PerformLayout();
                     this.PerformLayout();
+
                     ResumeLayout(true);
                 });
 
                 // Show form only after all rendering is complete
                 this.Invoke((MethodInvoker)delegate
                 {
+                    var lastTabName = Properties.Settings.Default.LastSelectedTabName;
+                    if (!string.IsNullOrEmpty(lastTabName))
+                    {
+                        for (int i = 0; i < tabControl.TabPages.Count; i++)
+                        {
+                            if (tabControl.TabPages[i].Text == lastTabName)
+                            {
+                                tabControl.SelectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
                     Opacity = 1;
                     Visible = true;
                     loadingDialog.Close();
