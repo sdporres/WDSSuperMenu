@@ -428,17 +428,25 @@ namespace WDSSuperMenu
                                 Logger.LogToFile($"Created button '{appButtonLabel}' with width: {button.Width}px");
                             }
 
+                            int entriesAdded = 0;
+
                             foreach (var button in buttons.Where(b => b.Name == "Scenario Game"))
                             {
                                 groupPanel.Controls.Add(button.Control);
+                                entriesAdded++;
                             }
 
-                            foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals" || b.Name == "Settings"))
+                            foreach (var button in buttons.Where(b => b.Name == "Settings"))
                             {
                                 groupPanel.Controls.Add(button.Control);
                             }
 
-                            int entriesAdded = 0;
+                            foreach (var button in buttons.Where(b => b.Name == "Saves" || b.Name == "Manuals"))
+                            {
+                                groupPanel.Controls.Add(button.Control);
+                                entriesAdded++;
+                            }
+
                             foreach (var desiredName in ExeNameMappings.OrderBy(x => x.Value.Order).Select(x => x.Value.Name))
                             {
                                 var matchingButton = buttons.FirstOrDefault(b => b.Name == desiredName);
@@ -772,14 +780,18 @@ namespace WDSSuperMenu
         private static string BuildAppName(string exeName)
         {
             exeName = exeName.ToLowerInvariant();
-            if (exeName.Contains("demo") || Path.GetFileNameWithoutExtension(exeName).Length <= 4)
-                return "Scenario Game";
 
             foreach (var mapping in ExeNameMappings)
             {
                 if (exeName.Contains(mapping.Key))
                     return mapping.Value.Name;
             }
+
+            if (RegistryReplacer.IsMainSoftware(Path.GetFileNameWithoutExtension(exeName)))
+            {
+                return "Scenario Game";
+            }
+
             return null;
         }
 

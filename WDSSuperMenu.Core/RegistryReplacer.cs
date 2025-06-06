@@ -4,6 +4,12 @@ namespace WDSSuperMenu.Core
 {
     public class RegistryReplacer
     {
+        public static bool IsMainSoftware(string sourceApp)
+        {
+            using var key = Registry.CurrentUser.OpenSubKey($@"Software\WDS LLC\{sourceApp}\Options");
+            return key != null;
+        }
+
         public static void CopySettings(string sourceApp, string targetApp)
         {
             using (RegistryKey sourceKey = Registry.CurrentUser.OpenSubKey($@"Software\WDS LLC\{sourceApp}\Options"))
